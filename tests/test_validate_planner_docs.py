@@ -228,6 +228,40 @@ def write_index(docs: Path, relative_refs: bool = False) -> None:
     (docs / "Sub-Planing-Index.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_ontology(docs: Path, headings: list[str] | None = None) -> None:
+    ontology_headings = headings or [
+        "# Project Ontology",
+        "## 1. Purpose",
+        "## 2. Domain Vocabulary",
+        "## 3. Core Entities and Concepts",
+        "## 4. Module and Boundary Map",
+        "## 5. Workflows and Lifecycles",
+        "## 6. Integrations and External Systems",
+        "## 7. Invariants and Constraints",
+        "## 8. Open Ontology Questions",
+    ]
+    lines: list[str] = []
+    for heading in ontology_headings:
+        lines += [heading, "", body(heading), ""]
+    (docs / "Project-Ontology.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_ledger(docs: Path, headings: list[str] | None = None) -> None:
+    ledger_headings = headings or [
+        "# Planing Ledger",
+        "## 1. Purpose",
+        "## 2. Planning Runs",
+        "## 3. Implementation Runs",
+        "## 4. Current State Snapshot",
+        "## 5. Replanning Inputs",
+        "## 6. Open Decisions and Follow-Ups",
+    ]
+    lines: list[str] = []
+    for heading in ledger_headings:
+        lines += [heading, "", body(heading), ""]
+    (docs / "Planing-Ledger.md").write_text("\n".join(lines), encoding="utf-8")
+
+
 def write_audit(docs: Path, status: str, fixes: list[str] | None = None) -> None:
     lines: list[str] = []
     for heading in AUDIT_HEADINGS:
@@ -254,6 +288,28 @@ def write_valid_step2_fixture(root: Path, relative_refs: bool = False) -> Path:
 
 
 class ValidatePlannerDocsTests(unittest.TestCase):
+
+    def test_autopsy_mode_validates_main_autopsy_and_optional_ontology(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = Path(temp_dir) / "Planner-docs"
+            docs.mkdir()
+            write_main_plan(docs)
+            write_autopsy(docs)
+            write_ontology(docs)
+            result = run_validator(Path(temp_dir), "autopsy", strict=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("autopsy_exists=true", result.stdout)
+            self.assertIn("ontology_exists=true", result.stdout)
+
+    def test_autopsy_mode_requires_autopsy_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = Path(temp_dir) / "Planner-docs"
+            docs.mkdir()
+            write_main_plan(docs)
+            result = run_validator(Path(temp_dir), "autopsy", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("missing_file=Planner-docs/Autopsy.md", result.stdout)
+
     def test_step2_passes_when_autopsy_is_absent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             write_valid_step2_fixture(Path(temp_dir))
@@ -304,6 +360,25 @@ class ValidatePlannerDocsTests(unittest.TestCase):
             result = run_validator(Path(temp_dir), "step2", strict=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("autopsy_exists=true", result.stdout)
+
+
+    def test_step2_validates_optional_ontology_and_ledger_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = write_valid_step2_fixture(Path(temp_dir))
+            write_ontology(docs)
+            write_ledger(docs)
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("ontology_exists=true", result.stdout)
+            self.assertIn("ledger_exists=true", result.stdout)
+
+    def test_step2_rejects_optional_ontology_heading_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = write_valid_step2_fixture(Path(temp_dir))
+            write_ontology(docs, headings=["# Project Ontology", "## 2. Domain Vocabulary", "## 1. Purpose"])
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("heading_out_of_order=Planner-docs/Project-Ontology.md", result.stdout)
 
     def test_step2_rejects_autopsy_heading_order_errors(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

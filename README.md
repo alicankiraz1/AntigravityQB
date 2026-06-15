@@ -1,26 +1,29 @@
 # AntigravityQB
 
-**Repo-aware project planning for Google Antigravity.**
+**Vibecoding-first repo planning for Google Antigravity.**
 
 AntigravityQB is a Google Antigravity Agent Skill that turns an existing repository into a durable planning package. It inspects the project, asks a small set of high-signal intake questions, writes structured planning documents, audits those documents, and finally produces a gated implementation handoff prompt for a separate Antigravity task.
 
 The plugin is designed for serious project work where plans need to survive long context windows, implementation needs clear acceptance criteria, and the agent should not start changing product code before the planning package is complete.
 
-AntigravityQB is the Antigravity-native edition of a repo-aware planning workflow built around Markdown-based stable planning, validation controls, and controlled implementation handoff. It is meant to reduce context drift in long tasks without turning the planning skill itself into an implementation agent.
+AntigravityQB is the Antigravity-native edition of a repo-aware planning workflow built around Markdown-based stable planning, validation controls, durable project memory, and controlled implementation handoff. It is meant to reduce context drift in long tasks without turning the planning skill itself into an implementation agent.
 
 ## What It Does
 
 AntigravityQB creates a planning workflow around the repository you already have open:
 
 - **Repo-aware intake:** reads the current project before asking questions, then proposes practical defaults for project name, intent, target state, and constraints.
-- **Existing-project autopsy:** identifies current modules, features, placeholder code, technical debt, integration gaps, validation gaps, and readiness risks.
-- **Durable planning artifacts:** writes Markdown files under `Planner-docs/` so the plan can be reviewed, versioned, shared, resumed, and audited.
+- **Project Autopsy + Ontology:** existing projects get a focused `Autopsy.md` report and may get `Project-Ontology.md` to capture vocabulary, entities, boundaries, workflows, integrations, and invariants.
+- **Durable planning memory:** writes Markdown files under `Planner-docs/` so the plan, ontology, and implementation ledger can be reviewed, versioned, shared, resumed, and audited.
 - **Phase decomposition:** expands a main plan into ordered phase folders and detailed sub-plan files.
-- **Quality audit:** checks coverage, sequencing, structure, readiness, security/governance concerns, and implementation preparedness.
+- **Quality audit:** checks coverage, sequencing, structure, readiness, ontology consistency, planning-history continuity, security/governance concerns, vibecoding slice quality, and implementation preparedness.
 - **Gated Step 4 handoff:** prints a separate implementation prompt only when the audit says implementation can begin.
-- **Queue-continuation semantics:** Step 4 builds an ordered READY/READY_WITH_WARNINGS queue and keeps going through verified slices until a real stop gate is hit.
+- **Queue-continuation semantics:** Step 4 builds an ordered READY/READY_WITH_WARNINGS queue, keeps going through verified slices until a real stop gate is hit, and asks the implementation run to append concise summaries to `Planing-Ledger.md`.
+- **Task delegation guidance:** recommends bounded helper agents/tasks only when they reduce context pollution, improve evidence quality, or separate implementation from review.
 - **Planning-only guardrails:** keeps P0/P1 audit gates, secret/token hygiene, file boundaries, and implementation safety rules visible at the skill level.
 - **Dependency-free validation:** ships a Python standard-library validator and a `make check` release gate.
+
+AntigravityQB is intentionally vibecoding-first: it keeps the target vision clear, reads the repository's real shape, avoids fake certainty, and plans the next useful verified moves instead of freezing unnecessary implementation detail too early. Vibecoding never relaxes safety, secret handling, approval, validation, or file-boundary rules.
 
 ## Why Use It
 
@@ -132,10 +135,10 @@ The `Planing` spelling is intentionally preserved because the bundled prompts an
 | Step | Purpose | Output |
 | --- | --- | --- |
 | Step 1 | Repository scan, intake questions, and master plan creation. | `Planner-docs/Main-Planing.md` |
-| Step 1.5 | Existing-project autopsy when the repo is already built or partially built. | `Planner-docs/Autopsy.md` |
+| Step 1.5 | Existing-project autopsy and optional ontology capture when the repo is already built or partially built. | `Planner-docs/Autopsy.md`, optional `Planner-docs/Project-Ontology.md` |
 | Step 2 | Full phase and sub-plan generation. | `Planner-docs/Sub-Planing-Index.md`, `Planner-docs/Faz-*-Plans/*.md` |
 | Step 3 | Read-only QA audit of the planning package. | `Planner-docs/Sub-Planing-Audit.md` |
-| Step 4 | Copy-ready implementation handoff prompt for a separate task. | Text prompt only |
+| Step 4 | Copy-ready implementation handoff prompt for a separate task and optional implementation ledger updates. | Text prompt only, optional `Planner-docs/Planing-Ledger.md` updates |
 
 ### Step 1: Main Plan
 
@@ -148,9 +151,11 @@ AntigravityQB scans the repository and asks:
 
 AntigravityQB asks intake questions in the user's language when practical. Generated Planner-docs artifacts are English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
 
+If `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md` already exists, Step 1 reads it as supporting history before intake. Current repository state and user-confirmed intent still win over stale continuity docs.
+
 ### Step 1.5: Autopsy
 
-For existing or partially built projects, AntigravityQB creates `Planner-docs/Autopsy.md`. The autopsy reviews:
+For existing or partially built projects, AntigravityQB creates `Planner-docs/Autopsy.md` and may create `Planner-docs/Project-Ontology.md` when enough evidence exists. The autopsy reviews:
 
 - project structure and major modules;
 - implemented, partial, and missing features;
@@ -160,11 +165,13 @@ For existing or partially built projects, AntigravityQB creates `Planner-docs/Au
 - security, privacy, and operational concerns;
 - readiness issues that should influence Step 2.
 
+`Project-Ontology.md` captures domain vocabulary, entities, concepts, module boundaries, workflows, lifecycles, integrations, invariants, constraints, and open ontology questions.
+
 Empty or nearly empty repositories can skip this step.
 
 ### Step 2: Sub-Plans
 
-Step 2 expands every main phase into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md` as feedback when present and writes an index at:
+Step 2 expands every main phase into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md`, `Project-Ontology.md`, and `Planing-Ledger.md` as supporting evidence when present and writes an index at:
 
 ```text
 Planner-docs/Sub-Planing-Index.md
@@ -180,7 +187,7 @@ Step 3 creates:
 Planner-docs/Sub-Planing-Audit.md
 ```
 
-The audit checks plan coverage, file naming, phase ordering, required sections, index consistency, scope drift, readiness realism, security/governance coverage, and Step 4 readiness. It does not repair plan files.
+The audit checks plan coverage, file naming, phase ordering, required sections, index consistency, scope drift, readiness realism, ontology consistency, planning-history continuity, security/governance coverage, vibecoding slice quality, and Step 4 readiness. It does not repair plan files.
 
 ### Step 4: Gated Implementation Handoff
 
@@ -193,6 +200,8 @@ The Step 4 prompt is printed only when:
 - the Step 4 validator passes.
 
 The implementation handoff must build an ordered queue from READY and READY_WITH_WARNINGS items. After each verified slice, the implementation task should continue to the next acceptance criterion or next eligible sub-plan instead of stopping after the first successful slice.
+
+When file writes are allowed in the Step 4 implementation task, the handoff asks the run to append a concise verified-slice or stop-event summary to `Planner-docs/Planing-Ledger.md`. The ledger is replanning memory, not a transcript dump.
 
 It should stop only when a real stop gate is hit, such as:
 
@@ -215,6 +224,8 @@ A complete planning run usually creates:
 Planner-docs/
   Main-Planing.md
   Autopsy.md
+  Project-Ontology.md
+  Planing-Ledger.md
   Sub-Planing-Index.md
   Sub-Planing-Audit.md
   Faz-1-Plans/
@@ -225,7 +236,7 @@ Planner-docs/
     Faz2.2-*.md
 ```
 
-`Autopsy.md` is optional for greenfield repositories. The phase and sub-plan count depends on the project scope.
+`Autopsy.md`, `Project-Ontology.md`, and `Planing-Ledger.md` are optional depending on repository maturity and prior runs. The phase and sub-plan count depends on the project scope.
 
 ## Validation
 
@@ -233,10 +244,13 @@ From an AntigravityQB checkout, validate generated planner docs with:
 
 ```bash
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step1
+python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode autopsy --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step2 --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3 --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step4
 ```
+
+The validator checks required sections, optional ontology/ledger headings, phase folders, filename conventions, index references, duplicate numbering, unindexed files, length-bounded secret patterns, and Step 4 readiness. P0/P1 audit findings block the implementation handoff.
 
 Maintainers should run the full package check before release:
 
@@ -249,8 +263,8 @@ make check
 - required repository files;
 - Antigravity skill frontmatter;
 - stale platform invocation names;
-- release secret hygiene;
-- archive hygiene when Git metadata is available;
+- release secret hygiene in Git checkouts or package secret hygiene in Gitless exports;
+- archive hygiene in Git checkouts or package hygiene in Gitless exports;
 - installer dry-runs;
 - Python unit tests.
 
@@ -290,6 +304,12 @@ skills/
     SKILL.md
     scripts/validate_planner_docs.py
     references/
+      vibecoding-principles.md
+      task-delegation-playbook.md
+      planning-ledger.md
+      project-ontology.md
+      assessment-and-budget.md
+      engineering-principles.md
 tests/
 Makefile
 LICENSE

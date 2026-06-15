@@ -46,6 +46,28 @@ AUTOPSY_HEADINGS = [
     "## 13. Priority Fix and Planning Signals",
 ]
 
+ONTOLOGY_HEADINGS = [
+    "# Project Ontology",
+    "## 1. Purpose",
+    "## 2. Domain Vocabulary",
+    "## 3. Core Entities and Concepts",
+    "## 4. Module and Boundary Map",
+    "## 5. Workflows and Lifecycles",
+    "## 6. Integrations and External Systems",
+    "## 7. Invariants and Constraints",
+    "## 8. Open Ontology Questions",
+]
+
+LEDGER_HEADINGS = [
+    "# Planing Ledger",
+    "## 1. Purpose",
+    "## 2. Planning Runs",
+    "## 3. Implementation Runs",
+    "## 4. Current State Snapshot",
+    "## 5. Replanning Inputs",
+    "## 6. Open Decisions and Follow-Ups",
+]
+
 INDEX_HEADINGS = [
     "# Sub-Planing Index",
     "## 1. Purpose",
@@ -333,6 +355,36 @@ def validate_autopsy_optional(state: ValidationState) -> None:
     validate_heading_order(text, AUTOPSY_HEADINGS, autopsy_path, state)
 
 
+def validate_autopsy_required(state: ValidationState) -> None:
+    autopsy_path = state.planner_docs / "Autopsy.md"
+    state.metrics["autopsy_exists"] = "true" if autopsy_path.exists() else "false"
+    if not autopsy_path.exists():
+        state.error("missing_file=Planner-docs/Autopsy.md")
+        return
+
+    text = read_text(autopsy_path, state)
+    if text is not None:
+        validate_heading_order(text, AUTOPSY_HEADINGS, autopsy_path, state)
+
+
+def validate_optional_continuity_docs(state: ValidationState) -> None:
+    ontology_path = state.planner_docs / "Project-Ontology.md"
+    ledger_path = state.planner_docs / "Planing-Ledger.md"
+
+    state.metrics["ontology_exists"] = "true" if ontology_path.exists() else "false"
+    state.metrics["ledger_exists"] = "true" if ledger_path.exists() else "false"
+
+    if ontology_path.exists():
+        text = read_text(ontology_path, state)
+        if text is not None:
+            validate_heading_order(text, ONTOLOGY_HEADINGS, ontology_path, state)
+
+    if ledger_path.exists():
+        text = read_text(ledger_path, state)
+        if text is not None:
+            validate_heading_order(text, LEDGER_HEADINGS, ledger_path, state)
+
+
 def validate_index(state: ValidationState) -> set[str]:
     index_path = state.planner_docs / "Sub-Planing-Index.md"
     text = read_text(index_path, state)
@@ -407,6 +459,7 @@ def validate_subplan_structure(
 def validate_step2(state: ValidationState) -> None:
     main_phases = validate_step1(state)
     validate_autopsy_optional(state)
+    validate_optional_continuity_docs(state)
     index_refs = validate_index(state)
     folders = collect_phase_folders(state)
     subplans = collect_subplans(state)
@@ -574,7 +627,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--root", default=".", help="Project root containing Planner-docs/; default: current directory.")
     parser.add_argument(
         "--mode",
-        choices=("step1", "step2", "step3", "step4", "all"),
+        choices=("step1", "autopsy", "step2", "step3", "step4", "all"),
         default="all",
         help="Validation scope.",
     )
@@ -587,6 +640,10 @@ def run_validation(root: Path, mode: str, strict: bool = False) -> int:
 
     if mode == "step1":
         validate_step1(state)
+    elif mode == "autopsy":
+        validate_step1(state)
+        validate_autopsy_required(state)
+        validate_optional_continuity_docs(state)
     elif mode == "step2":
         validate_step2(state)
     elif mode in {"step3", "all"}:

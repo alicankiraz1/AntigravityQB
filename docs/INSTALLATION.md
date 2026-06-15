@@ -32,6 +32,14 @@ Use `--force` to replace an existing installed copy:
 scripts/install.sh --scope ide-global --force
 ```
 
+Recommended local update commands:
+
+```bash
+scripts/install.sh --scope app-global --force
+scripts/install.sh --scope ide-global --force
+scripts/install.sh --scope cli-global --force
+```
+
 ## Install Manually
 
 Copy the skill folder to one of Antigravity's documented skills directories:
@@ -76,6 +84,8 @@ Expected behavior:
 5. It asks for `KNOWN_CONSTRAINTS`, including detected stack, infra, validation, security, and unknown constraints.
 6. It uses the confirmed values to create or update `Planner-docs/Main-Planing.md`.
 7. For existing or partially built repositories, it may create or update `Planner-docs/Autopsy.md` as Step 1.5.
+8. When enough evidence exists, it may create or update `Planner-docs/Project-Ontology.md`.
+9. Later implementation handoffs may update `Planner-docs/Planing-Ledger.md` with concise verified-slice summaries.
 
 ## Troubleshooting
 
@@ -86,4 +96,4 @@ If `antigravityqb` is not listed:
 - confirm it is installed under one of the documented skills directories;
 - reinstall with `--force` if a partial copy already exists.
 
-Step 2, Step 3, and Step 4 are intentionally handed off as text prompts so you can launch long-running planning, audit, or implementation work explicitly.
+Step 2, Step 3, and Step 4 are intentionally handed off as text prompts so you can launch long-running planning, audit, or implementation work explicitly. Step 4 may recommend helper agents/tasks when available, but the parent Antigravity task remains responsible for final artifact writes and summaries.

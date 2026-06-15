@@ -14,6 +14,12 @@ required_files=(
   "skills/antigravityqb/references/Fourth-Planner.md"
   "skills/antigravityqb/references/repo-aware-intake.md"
   "skills/antigravityqb/references/workflow-quality.md"
+  "skills/antigravityqb/references/vibecoding-principles.md"
+  "skills/antigravityqb/references/task-delegation-playbook.md"
+  "skills/antigravityqb/references/planning-ledger.md"
+  "skills/antigravityqb/references/project-ontology.md"
+  "skills/antigravityqb/references/assessment-and-budget.md"
+  "skills/antigravityqb/references/engineering-principles.md"
   "README.md"
   "docs/INSTALLATION.md"
   "docs/USAGE.md"
@@ -46,7 +52,7 @@ if not match:
 frontmatter = match.group(1)
 required = {
     "name: antigravityqb",
-    "description: Repo-aware project planning workflow for Google Antigravity. Use Markdown-based stable planning, validation gates, existing-project autopsy, phase sub-plans, QA audit, and a gated implementation handoff that continues through the ready queue.",
+    "description: Vibecoding-first Antigravity planning with autopsy, ontology, ledger memory, helper-agent-aware QA, and gated handoff.",
 }
 missing = sorted(item for item in required if item not in frontmatter)
 if missing:
@@ -112,6 +118,7 @@ PY
 python3 - <<'PY'
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 secret_patterns = [
@@ -130,15 +137,6 @@ allowed_openrouter_values = {
     "redacted",
     "your_openrouter_api_key",
 }
-scan_roots = [
-    Path("README.md"),
-    Path("Makefile"),
-    Path(".github"),
-    Path("docs"),
-    Path("skills"),
-    Path("scripts"),
-    Path("tests"),
-]
 ignored_parts = {
     ".git",
     "__MACOSX",
@@ -153,12 +151,43 @@ ignored_parts = {
 }
 blocked_suffixes = {".key", ".pem", ".pyc", ".zip"}
 
-paths: list[Path] = []
-for root in scan_roots:
-    if root.is_file():
-        paths.append(root)
-    elif root.is_dir():
-        paths.extend(path for path in root.rglob("*") if path.is_file())
+def git_tracked_paths() -> list[Path] | None:
+    result = subprocess.run(["git", "ls-files", "-z"], capture_output=True, check=False)
+    if result.returncode != 0:
+        return None
+    names = [item.decode("utf-8", errors="replace") for item in result.stdout.split(b"\0") if item]
+    return [Path(name) for name in names]
+
+
+def package_paths() -> list[Path]:
+    roots = [
+        Path("README.md"),
+        Path("Makefile"),
+        Path(".github"),
+        Path("docs"),
+        Path("skills"),
+        Path("scripts"),
+        Path("tests"),
+        Path("LICENSE"),
+        Path(".gitignore"),
+    ]
+    paths: list[Path] = []
+    for root in roots:
+        if root.is_file():
+            paths.append(root)
+        elif root.is_dir():
+            paths.extend(path for path in root.rglob("*") if path.is_file())
+    return paths
+
+
+tracked = git_tracked_paths()
+if tracked is None:
+    paths = package_paths()
+    failure_label = "package_secret_hygiene_failed"
+    print("package_secret_hygiene_mode=filesystem")
+else:
+    paths = tracked
+    failure_label = "release_secret_hygiene_failed"
 
 findings: list[str] = []
 for path in sorted(paths):
@@ -187,7 +216,7 @@ for path in sorted(paths):
                 findings.append(f"{path}:{line_number}: openrouter_env_value")
 
 if findings:
-    print("release_secret_hygiene_failed")
+    print(failure_label)
     for finding in findings:
         print(finding)
     sys.exit(1)
@@ -272,6 +301,12 @@ import re
 import subprocess
 import sys
 import tarfile
+from pathlib import Path
+
+bad = re.compile(
+    r"(^|/)(\.git|__pycache__|\.env|artifacts|logs|tmp|__MACOSX)(/|$)"
+    r"|\.pyc$|\.pem$|\.key$|\.local($|\.)"
+)
 
 inside_git = subprocess.run(
     ["git", "rev-parse", "--is-inside-work-tree"],
@@ -279,21 +314,32 @@ inside_git = subprocess.run(
     capture_output=True,
     check=False,
 )
-if inside_git.returncode != 0:
-    print("archive_hygiene_skipped_no_git=true")
-    sys.exit(0)
-
-archive = subprocess.run(["git", "archive", "--format=tar", "HEAD"], check=True, capture_output=True).stdout
-bad = re.compile(
-    r"(^|/)(\.git|__pycache__|\.env|artifacts|logs|tmp|__MACOSX)(/|$)"
-    r"|\.pyc$|\.pem$|\.key$|\.local($|\.)"
-)
-
-with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
-    offenders = [member.name for member in tar.getmembers() if bad.search(member.name)]
+if inside_git.returncode == 0:
+    archive = subprocess.run(["git", "archive", "--format=tar", "HEAD"], check=True, capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        offenders = [member.name for member in tar.getmembers() if bad.search(member.name)]
+    failure_label = "archive_hygiene_failed"
+else:
+    roots = [
+        Path("README.md"),
+        Path("Makefile"),
+        Path(".github"),
+        Path("docs"),
+        Path("skills"),
+        Path("scripts"),
+        Path("tests"),
+        Path("LICENSE"),
+        Path(".gitignore"),
+    ]
+    offenders = []
+    for root in roots:
+        paths = [root] if root.is_file() else [path for path in root.rglob("*") if path.is_file()]
+        offenders.extend(path.as_posix() for path in paths if bad.search(path.as_posix()))
+    failure_label = "package_hygiene_failed"
+    print("package_hygiene_mode=filesystem")
 
 if offenders:
-    print("archive_hygiene_failed")
+    print(failure_label)
     for offender in offenders:
         print(offender)
     sys.exit(1)
@@ -308,4 +354,8 @@ bash scripts/install.sh --scope ide-project --dry-run >/tmp/antigravityqb-missin
   exit 1
 }
 
-python3 -m unittest discover -s tests -v
+if [[ "${ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS:-0}" == "1" ]]; then
+  echo "unit_tests_skipped=1"
+else
+  python3 -m unittest discover -s tests -v
+fi

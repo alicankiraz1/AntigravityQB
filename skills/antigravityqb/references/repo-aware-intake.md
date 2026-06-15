@@ -59,7 +59,7 @@ Infer a draft answer only when there is evidence.
 - `PROJECT_NAME`: prefer README title, package/app name, repository directory name, product docs, or manifest names.
 - `PROJECT_INTENT`: infer what the project does, its target users, main components, integrations, and what it seems to be trying to become.
 - `TARGET_END_STATE`: draft the "done" state across product, engineering, operations, security, and user value.
-- `KNOWN_CONSTRAINTS`: infer stack, deployment model, test commands, CI, compliance/security boundaries, must-use tools, must-not-use tools, timeline hints, and unknown constraints that need user confirmation.
+- `KNOWN_CONSTRAINTS`: infer stack, deployment model, test commands, CI, compliance/security boundaries, must-use tools, must-not-use tools, timeline hints, desired autonomy, human review cadence, token/usage budget if present, and unknown constraints that need user confirmation.
 
 Do not treat inferred values as final until the user confirms or edits them.
 
@@ -168,9 +168,11 @@ Here is the constraint draft I saw in the repository or could not yet confirm:
 - Test/validation: <detected commands or unknown>
 - Security/compliance: <detected boundaries or unknown>
 - Time/team/budget: <known if present, otherwise unknown>
+- Autonomy/review cadence: <desired automation level or unknown>
+- Token/usage budget: <known if present, otherwise unknown; do not invent exact spend>
 - Must-use / must-not-use: <known if present, otherwise unknown>
 
-Is there anything I should add, correct, or specifically avoid in this list?
+Is there anything I should add, correct, or specifically avoid in this list? If you have a weekly/monthly Antigravity or token budget, share it so I can describe rough Antigravity task usage risk as low/medium/high instead of guessing exact spend.
 ```
 
 After the answer, confirm:
@@ -188,3 +190,8 @@ When all four fields are confirmed:
 3. Treat user-confirmed field values as source of truth.
 4. Treat repo-inferred intake notes as supporting context only.
 5. Continue with the full Step 1 repository analysis required by `First-Planner.md`.
+
+
+## Vibecoding and Continuity Note
+
+When prior `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md` exists, summarize their relevance briefly in the intake. Do not treat them as final truth; use them to ask better questions and to avoid losing prior implementation context.

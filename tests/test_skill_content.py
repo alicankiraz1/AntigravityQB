@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -14,7 +18,7 @@ class SkillContentTests(unittest.TestCase):
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(skill.startswith("---\n"))
         self.assertIn("name: antigravityqb", skill)
-        self.assertIn("Repo-aware project planning workflow for Google Antigravity", skill)
+        self.assertIn("Vibecoding-first Antigravity planning", skill)
         self.assertIn("Use the antigravityqb skill", skill)
         self.assertNotIn("$codexqb", skill)
 
@@ -153,7 +157,7 @@ class SkillContentTests(unittest.TestCase):
     def test_fourth_planner_external_support_is_optional(self) -> None:
         fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
         self.assertIn("If installed/available in Antigravity", fourth)
-        self.assertIn("If no supporting skill is installed", fourth)
+        self.assertIn("If no supporting skill or helper agent is available", fourth)
         self.assertIn("continue using the audit", fourth)
         self.assertNotIn("Codex skills/plugins", fourth)
 
@@ -188,16 +192,53 @@ class SkillContentTests(unittest.TestCase):
         validate_script = (REPO_ROOT / "scripts/validate.sh").read_text(encoding="utf-8")
         for phrase in [
             "release_secret_hygiene_failed",
+            "package_secret_hygiene_failed",
+            "package_secret_hygiene_mode=filesystem",
             "release_pii_hygiene_failed",
             "openrouter_api_key",
             "OPENROUTER_API_KEY",
             "git\", \"archive\"",
             "archive_hygiene_failed",
-            "archive_hygiene_skipped_no_git",
+            "package_hygiene_failed",
+            "package_hygiene_mode=filesystem",
+            "ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS",
             "__MACOSX",
             ".local",
         ]:
             self.assertIn(phrase, validate_script)
+
+    def test_validate_script_runs_without_git_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            package_root = Path(temp_dir) / "AntigravityQB"
+
+            def ignore(_dir: str, names: list[str]) -> set[str]:
+                ignored = {
+                    ".git",
+                    "__pycache__",
+                    ".pytest_cache",
+                    ".mypy_cache",
+                    ".ruff_cache",
+                    "AntigravityQB-sanitized.zip",
+                }
+                return ignored.intersection(names)
+
+            shutil.copytree(REPO_ROOT, package_root, ignore=ignore)
+            env = os.environ.copy()
+            env["ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS"] = "1"
+            result = subprocess.run(
+                ["bash", "scripts/validate.sh"],
+                cwd=package_root,
+                env=env,
+                text=True,
+                capture_output=True,
+                timeout=30,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("package_secret_hygiene_mode=filesystem", result.stdout)
+            self.assertIn("package_hygiene_mode=filesystem", result.stdout)
+            self.assertIn("unit_tests_skipped=1", result.stdout)
 
     def test_archive_hygiene_pattern_matches_forbidden_paths(self) -> None:
         pattern = re.compile(
@@ -226,6 +267,80 @@ class SkillContentTests(unittest.TestCase):
             self.assertRegex(path, pattern)
         for path in allowed:
             self.assertNotRegex(path, pattern)
+
+    def test_autopsy_validator_mode_is_documented(self) -> None:
+        validator = (SKILL_ROOT / "scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+        autopsy = (SKILL_ROOT / "references/Autopsy-Planner.md").read_text(encoding="utf-8")
+        maintaining = (REPO_ROOT / "docs/MAINTAINING.md").read_text(encoding="utf-8")
+        self.assertIn('"autopsy"', validator)
+        self.assertIn("--mode autopsy --strict", autopsy)
+        self.assertIn("--mode autopsy --strict", maintaining)
+
+    def test_vibecoding_and_task_delegation_references_are_wired(self) -> None:
+        skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        usage = (REPO_ROOT / "docs/USAGE.md").read_text(encoding="utf-8")
+
+        expected_refs = [
+            "vibecoding-principles.md",
+            "task-delegation-playbook.md",
+            "planning-ledger.md",
+            "project-ontology.md",
+            "assessment-and-budget.md",
+            "engineering-principles.md",
+        ]
+        for ref in expected_refs:
+            self.assertTrue((SKILL_ROOT / "references" / ref).is_file(), ref)
+            self.assertIn(ref, skill, ref)
+
+        for text_blob in [skill, readme, usage]:
+            self.assertIn("vibecoding-first", text_blob.lower())
+            self.assertIn("helper agent", text_blob.lower())
+
+    def test_planning_ledger_and_ontology_are_documented(self) -> None:
+        skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        usage = (REPO_ROOT / "docs/USAGE.md").read_text(encoding="utf-8")
+        second = (SKILL_ROOT / "references/Second-Planner.md").read_text(encoding="utf-8")
+        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+
+        for artifact in ["Planner-docs/Planing-Ledger.md", "Planner-docs/Project-Ontology.md"]:
+            self.assertIn(artifact, skill)
+            self.assertIn(artifact, usage)
+
+        self.assertIn("Planing-Ledger.md", second)
+        self.assertIn("Project-Ontology.md", second)
+        self.assertIn("Planing-Ledger.md", fourth)
+
+    def test_prompt_secret_scans_do_not_print_secret_values(self) -> None:
+        prompt_paths = list((SKILL_ROOT / "references").glob("*.md")) + [SKILL_ROOT / "SKILL.md"]
+        for path in prompt_paths:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn('rg -n "sk-', text, path.name)
+        workflow_quality = (SKILL_ROOT / "references/workflow-quality.md").read_text(encoding="utf-8")
+        self.assertIn("file-name-only", workflow_quality)
+
+    def test_fourth_planner_mentions_helper_roles_and_ledger(self) -> None:
+        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+        for phrase in [
+            "explorer maps relevant files and risks",
+            "tester/verifier identifies validation path",
+            "implementer/worker makes the smallest change",
+            "reviewer/security reviews the diff",
+            "Only one writer should modify files per slice",
+            "Planner-docs/Planing-Ledger.md",
+        ]:
+            self.assertIn(phrase, fourth)
+
+    def test_validator_supports_optional_ontology_and_ledger_headings(self) -> None:
+        validator = (SKILL_ROOT / "scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+        for phrase in [
+            "ONTOLOGY_HEADINGS",
+            "LEDGER_HEADINGS",
+            "Project-Ontology.md",
+            "Planing-Ledger.md",
+            "validate_optional_continuity_docs",
+        ]:
+            self.assertIn(phrase, validator)
 
     def test_github_actions_validate_workflow_pins_python(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/validate.yml").read_text(encoding="utf-8")
