@@ -1,13 +1,15 @@
 ---
 name: antigravityqb
-description: Repo-aware project planning workflow for Google Antigravity. Use to create Planner-docs/Main-Planing.md, run an existing-project autopsy, decompose phases into sub-plans, audit readiness, and print a gated implementation handoff.
+description: Repo-aware project planning workflow for Google Antigravity. Use Markdown-based stable planning, validation gates, existing-project autopsy, phase sub-plans, QA audit, and a gated implementation handoff that continues through the ready queue.
 ---
 
 # AntigravityQB
 
 ## Overview
 
-Run the bundled planning workflow for a project repository from Google Antigravity. Keep Step 1 conversational and repo-aware, run Step 1.5 Autopsy for existing projects, and hand off Step 2 and Step 3 as text-only Antigravity task prompts unless the user explicitly asks for a different flow. After Step 3, provide a gated Step 4 implementation handoff prompt only when the audit says implementation can begin.
+Run the bundled planning workflow for a project repository from Google Antigravity. Use Markdown-based stable planning artifacts, repo-aware analysis, validation controls, and explicit handoffs to reduce context drift during long tasks. Keep Step 1 conversational and repo-aware, run Step 1.5 Autopsy for existing projects, and hand off Step 2 and Step 3 as text-only Antigravity task prompts unless the user explicitly asks for a different flow. After Step 3, provide a gated Step 4 implementation handoff prompt only when the audit says implementation can begin.
+
+AntigravityQB keeps planning and implementation separate. It does not let the workflow skip the plan: P0/P1 audit findings block implementation, secret/token hygiene and file boundaries stay enforced at the skill level, and the Step 4 handoff executes the READY/READY_WITH_WARNINGS queue in small verified slices instead of stopping after the first successful slice.
 
 The bundled prompts are:
 

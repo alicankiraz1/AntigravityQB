@@ -46,7 +46,7 @@ if not match:
 frontmatter = match.group(1)
 required = {
     "name: antigravityqb",
-    "description: Repo-aware project planning workflow for Google Antigravity. Use to create Planner-docs/Main-Planing.md, run an existing-project autopsy, decompose phases into sub-plans, audit readiness, and print a gated implementation handoff.",
+    "description: Repo-aware project planning workflow for Google Antigravity. Use Markdown-based stable planning, validation gates, existing-project autopsy, phase sub-plans, QA audit, and a gated implementation handoff that continues through the ready queue.",
 }
 missing = sorted(item for item in required if item not in frontmatter)
 if missing:

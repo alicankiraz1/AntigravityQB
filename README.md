@@ -6,6 +6,8 @@ AntigravityQB is a Google Antigravity Agent Skill that turns an existing reposit
 
 The plugin is designed for serious project work where plans need to survive long context windows, implementation needs clear acceptance criteria, and the agent should not start changing product code before the planning package is complete.
 
+AntigravityQB is the Antigravity-native edition of a repo-aware planning workflow built around Markdown-based stable planning, validation controls, and controlled implementation handoff. It is meant to reduce context drift in long tasks without turning the planning skill itself into an implementation agent.
+
 ## What It Does
 
 AntigravityQB creates a planning workflow around the repository you already have open:
@@ -17,6 +19,7 @@ AntigravityQB creates a planning workflow around the repository you already have
 - **Quality audit:** checks coverage, sequencing, structure, readiness, security/governance concerns, and implementation preparedness.
 - **Gated Step 4 handoff:** prints a separate implementation prompt only when the audit says implementation can begin.
 - **Queue-continuation semantics:** Step 4 builds an ordered READY/READY_WITH_WARNINGS queue and keeps going through verified slices until a real stop gate is hit.
+- **Planning-only guardrails:** keeps P0/P1 audit gates, secret/token hygiene, file boundaries, and implementation safety rules visible at the skill level.
 - **Dependency-free validation:** ships a Python standard-library validator and a `make check` release gate.
 
 ## Why Use It
