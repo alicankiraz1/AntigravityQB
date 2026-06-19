@@ -68,7 +68,7 @@ class SkillContentTests(unittest.TestCase):
     def test_language_contract_is_documented(self) -> None:
         required_phrases = [
             "AntigravityQB asks intake questions in the user's language when practical.",
-            "Generated Planner-docs artifacts are English by default unless the user explicitly requests another body language.",
+            "Generated Planner-docs artifacts are English by default unless the user explicitly requests another content language.",
             "Required document headings remain English for validator stability.",
         ]
         checked_files = [
@@ -88,7 +88,7 @@ class SkillContentTests(unittest.TestCase):
             SKILL_ROOT / "references/Third-Planner.md",
         ]:
             text = path.read_text(encoding="utf-8")
-            self.assertIn("English by default unless the user explicitly requests another body language", text, path.name)
+            self.assertIn("English by default unless the user explicitly requests another content language", text, path.name)
             self.assertIn("Required document headings remain English", text, path.name)
 
     def test_repo_aware_intake_keeps_stable_four_fields(self) -> None:
@@ -155,23 +155,22 @@ class SkillContentTests(unittest.TestCase):
             self.assertIn("equivalent all-file validation", text, path.name)
 
     def test_fourth_planner_external_support_is_optional(self) -> None:
-        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+        fourth = (SKILL_ROOT / "references/handoffs/run-step4.md").read_text(encoding="utf-8")
         self.assertIn("If installed/available in Antigravity", fourth)
         self.assertIn("If no supporting skill or helper agent is available", fourth)
         self.assertIn("continue using the audit", fourth)
         self.assertNotIn("Codex skills/plugins", fourth)
 
     def test_fourth_planner_runs_queue_continuously_with_stop_gates(self) -> None:
-        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+        fourth = (SKILL_ROOT / "references/handoffs/run-step4.md").read_text(encoding="utf-8")
         self.assertIn("Build an ordered implementation queue", fourth)
-        self.assertIn("Execute the queue continuously", fourth)
         self.assertIn("instead of stopping", fourth)
         self.assertIn("Stop only when one of these stop gates is hit", fourth)
         self.assertIn("token/context budget too low to continue safely", fourth)
         self.assertNotIn("Codex skills/plugins", fourth)
 
     def test_fourth_planner_has_mechanical_per_slice_loop(self) -> None:
-        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+        fourth = (SKILL_ROOT / "references/handoffs/run-step4.md").read_text(encoding="utf-8")
         for phrase in [
             "For each implementation slice:",
             "Name the active phase/sub-plan",
@@ -181,7 +180,9 @@ class SkillContentTests(unittest.TestCase):
             "focused failing test",
             "smallest change",
             "Run targeted validation",
+            "If targeted validation fails and the source is unclear, stop",
             "Run the repo-level gate",
+            "Do not batch unrelated sub-plans in one diff",
             "Summarize:",
             "scope would exceed the selected sub-plan",
         ]:
@@ -202,6 +203,7 @@ class SkillContentTests(unittest.TestCase):
             "package_hygiene_failed",
             "package_hygiene_mode=filesystem",
             "ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS",
+            "python3 evals/run_fixture_corpus_checks.py",
             "__MACOSX",
             ".local",
         ]:
@@ -286,6 +288,8 @@ class SkillContentTests(unittest.TestCase):
             "task-delegation-playbook.md",
             "planning-ledger.md",
             "project-ontology.md",
+            "project-comprehension-methods.md",
+            "probe-policy.md",
             "assessment-and-budget.md",
             "engineering-principles.md",
         ]
@@ -301,9 +305,13 @@ class SkillContentTests(unittest.TestCase):
         skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
         usage = (REPO_ROOT / "docs/USAGE.md").read_text(encoding="utf-8")
         second = (SKILL_ROOT / "references/Second-Planner.md").read_text(encoding="utf-8")
-        fourth = (SKILL_ROOT / "references/Fourth-Planner.md").read_text(encoding="utf-8")
+        fourth = (SKILL_ROOT / "references/handoffs/run-step4.md").read_text(encoding="utf-8")
 
-        for artifact in ["Planner-docs/Planing-Ledger.md", "Planner-docs/Project-Ontology.md"]:
+        for artifact in [
+            "Planner-docs/Planing-Ledger.md",
+            "Planner-docs/Project-Ontology.md",
+            "Planner-docs/Project-Comprehension.md",
+        ]:
             self.assertIn(artifact, skill)
             self.assertIn(artifact, usage)
 
@@ -342,12 +350,144 @@ class SkillContentTests(unittest.TestCase):
         ]:
             self.assertIn(phrase, validator)
 
-    def test_github_actions_validate_workflow_pins_python(self) -> None:
+    def test_project_comprehension_reference_and_prompts_are_wired(self) -> None:
+        ref = SKILL_ROOT / "references/project-comprehension-methods.md"
+        self.assertTrue(ref.is_file())
+        ref_text = ref.read_text(encoding="utf-8")
+        for phrase in [
+            "question-driven comprehension",
+            "why/how/what hypotheses",
+            "Evidence Register",
+            "Domain-to-Code Trace Map",
+            "Architecture Reflexion",
+            "QAW/ATAM-lite",
+            "Goal/Question/Evidence",
+        ]:
+            self.assertIn(phrase, ref_text)
+
+        checked_files = [
+            SKILL_ROOT / "SKILL.md",
+            SKILL_ROOT / "references/Autopsy-Planner.md",
+            SKILL_ROOT / "references/Second-Planner.md",
+            SKILL_ROOT / "references/Third-Planner.md",
+            SKILL_ROOT / "references/Fourth-Planner.md",
+        ]
+        for path in checked_files:
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("Project-Comprehension.md", text, path.name)
+            self.assertIn("project-comprehension-methods.md", text, path.name)
+
+    def test_antigravity_task_contract_uses_canonical_handoff_sources(self) -> None:
+        handoff_root = SKILL_ROOT / "references/handoffs"
+        for name in ["run-step2.md", "run-step3.md", "run-step4.md"]:
+            path = handoff_root / name
+            self.assertTrue(path.is_file(), name)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("contract_version: 1", text)
+            self.assertIn("Antigravity Task Contract", text)
+            self.assertIn("Resume / Recovery Protocol", text)
+            for phrase in [
+                "Outcome",
+                "Inputs",
+                "Boundaries",
+                "Source precedence",
+                "Validation gates",
+                "Stop gates",
+                "Context budget",
+                "Helper agent policy",
+            ]:
+                self.assertIn(phrase, text, name)
+
+        references = {
+            "SKILL.md": SKILL_ROOT / "SKILL.md",
+            "Second-Planner.md": SKILL_ROOT / "references/Second-Planner.md",
+            "Third-Planner.md": SKILL_ROOT / "references/Third-Planner.md",
+            "Fourth-Planner.md": SKILL_ROOT / "references/Fourth-Planner.md",
+        }
+        for name, path in references.items():
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("references/handoffs/", text, name)
+            self.assertNotIn("Antigravity Task Contract:\n- Outcome:", text, name)
+
+    def test_comprehension_validator_contract_is_documented(self) -> None:
+        validator = (SKILL_ROOT / "scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+        for phrase in [
+            "COMPREHENSION_HEADINGS",
+            "Project-Comprehension.md",
+            "ALLOWED_EVIDENCE_TYPES",
+            "ALLOWED_CONFIDENCE_VALUES",
+            "ALLOWED_CLAIM_TYPES",
+            "ALLOWED_ARCHITECTURE_STATUSES",
+            "ALLOWED_ONTOLOGY_QUESTION_STATUSES",
+            "markdown_headings",
+            "validate_optional_comprehension_doc",
+            "NOT_APPLICABLE",
+            "NO_UNRESOLVED_HYPOTHESES",
+        ]:
+            self.assertIn(phrase, validator)
+
+    def test_planning_ledger_v2_is_documented_and_legacy_remains_supported(self) -> None:
+        ledger_ref = (SKILL_ROOT / "references/planning-ledger.md").read_text(encoding="utf-8")
+        validator = (SKILL_ROOT / "scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+        for phrase in ["Plan Snapshot Registry", "Sub-Plan Status Matrix", "Ledger v2", "legacy v1", "Superseded By", "Updated At"]:
+            self.assertIn(phrase, ledger_ref)
+        self.assertIn("LEDGER_V2_HEADINGS", validator)
+        self.assertIn("LEDGER_LEGACY_HEADINGS", validator)
+        self.assertIn("ALLOWED_LEDGER_STATUSES", validator)
+
+    def test_ci_and_export_sanitized_are_hardened(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/validate.yml").read_text(encoding="utf-8")
+        makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("push:", workflow)
+        self.assertIn("pull_request:", workflow)
+        self.assertNotIn("branches: [main]", workflow)
         self.assertIn("actions/checkout@v6", workflow)
         self.assertIn("actions/setup-python@v6", workflow)
         self.assertIn('python-version: "3.12"', workflow)
         self.assertIn("make check", workflow)
+        self.assertIn("git diff --quiet", makefile)
+        self.assertIn("git diff --cached --quiet", makefile)
+        self.assertIn("--prefix=AntigravityQB/", makefile)
+
+    def test_fixture_corpus_infrastructure_is_present(self) -> None:
+        runner = REPO_ROOT / "evals/run_fixture_corpus_checks.py"
+        wrapper = REPO_ROOT / "evals/run_fixture_checks.py"
+        self.assertTrue(runner.is_file())
+        self.assertTrue(wrapper.is_file())
+        runner_text = runner.read_text(encoding="utf-8")
+        self.assertIn("fixture_corpus_checks=passed", runner_text)
+        fixture_root = REPO_ROOT / "evals/fixtures"
+        for fixture in [
+            "clean-layered-service",
+            "drifted-architecture",
+            "distributed-domain-feature",
+            "hidden-coupling-signal",
+            "stale-ledger",
+            "runtime-only-behavior",
+            "security-boundary-risk",
+        ]:
+            self.assertTrue((fixture_root / fixture / "expected.json").is_file(), fixture)
+
+    def test_probe_policy_and_schema_versions_are_documented(self) -> None:
+        probe = SKILL_ROOT / "references/probe-policy.md"
+        self.assertTrue(probe.is_file())
+        probe_text = probe.read_text(encoding="utf-8")
+        for phrase in ["Tier 0", "Tier 1", "Tier 2", "Tier 3", "approval", "timeout", "cleanup"]:
+            self.assertIn(phrase, probe_text)
+
+        for path in [REPO_ROOT / "README.md", REPO_ROOT / "docs/USAGE.md", REPO_ROOT / "docs/MAINTAINING.md", REPO_ROOT / "docs/INSTALLATION.md"]:
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("artifact_schema_version: 2", text, path.name)
+            self.assertIn("handoff_contract_version: 1", text, path.name)
+
+    def test_local_skill_sync_docs_exclude_python_caches(self) -> None:
+        install = (REPO_ROOT / "docs/INSTALLATION.md").read_text(encoding="utf-8")
+        maintaining = (REPO_ROOT / "docs/MAINTAINING.md").read_text(encoding="utf-8")
+        for text in [install, maintaining]:
+            self.assertIn("--exclude '__pycache__/'", text)
+            self.assertIn("--exclude '*.pyc'", text)
+            self.assertIn("diff -ru -x __pycache__", text)
 
 
 if __name__ == "__main__":

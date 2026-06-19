@@ -1,5 +1,8 @@
 # Installation
 
+artifact_schema_version: 2
+handoff_contract_version: 1
+
 AntigravityQB is distributed as a Google Antigravity Agent Skill folder.
 
 ## Requirements
@@ -85,7 +88,25 @@ Expected behavior:
 6. It uses the confirmed values to create or update `Planner-docs/Main-Planing.md`.
 7. For existing or partially built repositories, it may create or update `Planner-docs/Autopsy.md` as Step 1.5.
 8. When enough evidence exists, it may create or update `Planner-docs/Project-Ontology.md`.
-9. Later implementation handoffs may update `Planner-docs/Planing-Ledger.md` with concise verified-slice summaries.
+9. For non-trivial existing projects, it may create or update `Planner-docs/Project-Comprehension.md` with evidence confidence, CQ/TRACE/ARC links, architecture reflexion, quality scenarios, and open validation probes.
+10. Later implementation handoffs may update `Planner-docs/Planing-Ledger.md` with concise verified-slice summaries.
+
+AntigravityQB 0.2.1 keeps 0.2.0 planner artifacts readable outside strict execution gates. Legacy `Planing-Ledger.md` v1 files pass non-strict validation with a deprecation warning, but strict Step 4 execution requires Ledger v2 migration before implementation starts.
+
+## Verify Local Parity
+
+After updating the repository copy, reinstall and compare the app-visible skill:
+
+```bash
+scripts/install.sh --scope app-global --force
+diff -ru -x __pycache__ skills/antigravityqb ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb
+```
+
+When syncing manually, exclude generated Python caches:
+
+```bash
+rsync -a --delete --exclude '__pycache__/' --exclude '*.pyc' skills/antigravityqb/ ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb/
+```
 
 ## Troubleshooting
 

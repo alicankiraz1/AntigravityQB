@@ -1,0 +1,8 @@
+{
+  "id": "distributed-domain-feature",
+  "description": "One domain concept spans multiple runtime modules and state surfaces.",
+  "expected_comprehension_signals": ["distributed feature", "runtime path", "state model"],
+  "expected_trace_ids": ["TRACE-task-lease"],
+  "expected_architecture_statuses": ["uncertain"],
+  "expected_quality_checks": ["concept_to_code_coverage", "open_question_quality"]
+}

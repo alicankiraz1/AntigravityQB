@@ -1,0 +1,8 @@
+{
+  "id": "security-boundary-risk",
+  "description": "Command execution boundary risk should be captured as security/governance evidence.",
+  "expected_comprehension_signals": ["security boundary", "command execution", "human approval"],
+  "expected_trace_ids": ["TRACE-command-runner"],
+  "expected_architecture_statuses": ["uncertain"],
+  "expected_quality_checks": ["security_finding_recall", "traceability_coverage"]
+}

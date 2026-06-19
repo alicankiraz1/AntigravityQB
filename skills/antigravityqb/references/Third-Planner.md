@@ -53,6 +53,7 @@ Optional supporting sources:
 
 - Planner-docs/Autopsy.md
 - Planner-docs/Project-Ontology.md
+- Planner-docs/Project-Comprehension.md
 - Planner-docs/Planing-Ledger.md
 
 Main-Planing.md is the master plan.
@@ -62,14 +63,20 @@ Supporting operational reference:
 If available, read the AntigravityQB support note before auditing:
 
 references/workflow-quality.md
+references/project-comprehension-methods.md
 
 Implementation handoff reference:
 If available, read this only after the audit is written and Step 4 readiness is known:
 
 references/Fourth-Planner.md
+references/handoffs/run-step3.md
+references/handoffs/run-step4.md
 
 Language:
-Write Planner-docs/Sub-Planing-Audit.md in English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
+Write Planner-docs/Sub-Planing-Audit.md in English by default unless the user explicitly requests another content language. Required document headings remain English for validator stability.
+
+Antigravity task handoff source:
+Read and return the exact canonical handoff from `references/handoffs/run-step3.md` when the user asks for Step 3 Antigravity task text. Do not duplicate the full Antigravity Task Contract in this file.
 
 Repository inspection requirements:
 
@@ -88,12 +95,13 @@ Run only safe read-only commands such as:
 
 Useful discovery commands:
 - rg "^#|^##|Faz|Phase|Stage|Maturity|Acceptance|Risk|Dependency|Validation|Test|Desired|Scope|Out of Scope|Current Repository Evidence|Planned Work Breakdown" Planner-docs --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
-- rg "TODO|FIXME|TBD|unclear|missing|later|future|assumption|blocked|blocker|risk|secret|token|credential|production|live|local|readiness|ontology|ledger|vibecoding|task|helper agent" Planner-docs --glob '!.git/**' --glob '!node_modules/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
+- rg "TODO|FIXME|TBD|unclear|missing|later|future|assumption|blocked|blocker|risk|production|live|local|readiness|ontology|ledger|comprehension|vibecoding|Goal|helper agent" Planner-docs --glob '!.git/**' --glob '!node_modules/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
+- rg -l "secret|token|credential|api[_-]?key|password|private[_-]?key" Planner-docs --glob '!.git/**' --glob '!node_modules/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
 - rg "docs/|Planner-docs/|Main-Planing|Sub-Planing|Faz-" Planner-docs --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
 
-Before writing the audit, run the bundled read-only validator if available:
+Before writing the audit, run the bundled read-only Step 3 preflight validator if available:
 
-python3 skills/antigravityqb/scripts/validate_planner_docs.py --root . --mode step3 --strict
+python3 skills/antigravityqb/scripts/validate_planner_docs.py --root . --mode step3-preflight --strict
 
 If an installed plugin exposes a different active skill script path, use that bundled validator path instead.
 
@@ -259,7 +267,7 @@ Check whether sub-plans:
 - are suitable for Antigravity task because they include outcome, validation, unchanged boundaries, and stop conditions.
 
 11. Ontology and planning-history audit
-If Project-Ontology.md exists, check whether sub-plans preserve vocabulary, entities, workflows, boundaries, integrations, and invariants. If Planing-Ledger.md exists, check whether sub-plans account for prior implementation summaries and do not duplicate already-completed work without verifying current repo state.
+If Project-Ontology.md exists, check whether sub-plans preserve vocabulary, entities, workflows, boundaries, integrations, invariants, and competency-question coverage. If Project-Comprehension.md exists, audit evidence quality, confidence calibration, trace coverage, architecture drift coverage, CQ/TRACE/ARC usage, and whether open hypotheses have next probes. If Planing-Ledger.md exists, check whether sub-plans account for prior implementation summaries and do not duplicate already-completed work without verifying current repo state.
 
 12. Step 4 readiness
 Evaluate whether the sub-plans are ready to be decomposed into implementation tasks.
@@ -448,33 +456,56 @@ If the project domain differs, adapt but still check for security boundaries.
 
 Create a table:
 
-Columns:
-- Faz / Alt Plan
-- Ready for Step 4?
-- Reason
-- Required fix before Step 4 starts
-- First implementation slice
-- Validation signal
-- Token/context risk
-- Recommended helper agent roles, if any
+Use exactly these columns:
+
+```markdown
+| Sub-Plan Path | Status | Finding IDs | Dependency State | Reason | Required Repair |
+|---|---|---|---|---|---|
+```
 
 Use statuses:
 - READY
 - READY_WITH_WARNINGS
 - NEEDS_REPAIR
 - BLOCKED
+- COMPLETE
+- SUPERSEDED
+- DEFERRED
+
+Use dependency states:
+- satisfied
+- independent
+- blocked
+- unknown
+
+Execution queue states:
+- READY: at least one READY or READY_WITH_WARNINGS row is present and no blocking finding applies.
+- NO_ACTION_REQUIRED: all in-scope rows are COMPLETE, SUPERSEDED, or DEFERRED; Step 4 must not start implementation.
+- BLOCKED: open P0/P1, global execution blocker, unsafe path, missing target, or unresolved dependency blocks execution.
+
+Rules:
+- READY rows require dependency state `satisfied` or `independent`.
+- READY_WITH_WARNINGS may reference only open or accepted P2/P3 findings.
+- NEEDS_REPAIR, BLOCKED, COMPLETE, SUPERSEDED, and DEFERRED are not queued for Step 4.
+- Use repo-relative sub-plan paths such as `Planner-docs/Faz-1-Plans/Faz1.1-example.md`; never use absolute paths or `..` traversal.
+- Do not emit two rows for the same sub-plan with conflicting active statuses.
 
 ## 13. Priority Fix List
 
-List concrete fixes needed before Step 4.
+List concrete fixes needed before Step 4 in this exact table shape:
 
-Each item must include:
-- ID, using AUDIT-FIX-NN
-- severity: P0, P1, P2, P3
-- affected file(s)
-- issue
-- recommended fix
-- why it matters
+```markdown
+| Finding ID | Severity | Status | Affected Files | Issue | Required Action |
+|---|---|---|---|---|---|
+```
+
+Each row must include:
+- Finding ID, using AUDIT-FIX-NN
+- Severity: P0, P1, P2, P3
+- Status: open, accepted, resolved, or not_applicable
+- Affected Files
+- Issue
+- Required Action
 
 Severity guide:
 - P0: blocks Step 4 or could cause dangerous planning/implementation.
@@ -483,6 +514,12 @@ Severity guide:
 - P3: minor wording or maintainability issue.
 
 Do not modify affected files. Only report fixes.
+
+Finding status consistency:
+- open P0/P1 always blocks Step 4.
+- open or accepted P2/P3 requires PASS_WITH_WARNINGS.
+- resolved or not_applicable P2/P3 can coexist with PASS.
+- accepted means risk is knowingly carried forward and must remain visible.
 
 ## 14. Recommended Next Command / Prompt
 
@@ -578,7 +615,7 @@ If blocked:
 
 Final response requirements:
 
-After completion, provide a concise final summary using the same language contract: English by default unless the user explicitly requests another body language, with required artifact headings kept in English.
+After completion, provide a concise final summary using the same language contract: English by default unless the user explicitly requests another content language, with required artifact headings kept in English.
 
 Include:
 - audit status;

@@ -12,15 +12,23 @@ required_files=(
   "skills/antigravityqb/references/Second-Planner.md"
   "skills/antigravityqb/references/Third-Planner.md"
   "skills/antigravityqb/references/Fourth-Planner.md"
+  "skills/antigravityqb/references/handoffs/run-step2.md"
+  "skills/antigravityqb/references/handoffs/run-step3.md"
+  "skills/antigravityqb/references/handoffs/run-step4.md"
   "skills/antigravityqb/references/repo-aware-intake.md"
   "skills/antigravityqb/references/workflow-quality.md"
   "skills/antigravityqb/references/vibecoding-principles.md"
   "skills/antigravityqb/references/task-delegation-playbook.md"
   "skills/antigravityqb/references/planning-ledger.md"
   "skills/antigravityqb/references/project-ontology.md"
+  "skills/antigravityqb/references/project-comprehension-methods.md"
+  "skills/antigravityqb/references/probe-policy.md"
   "skills/antigravityqb/references/assessment-and-budget.md"
   "skills/antigravityqb/references/engineering-principles.md"
+  "evals/run_fixture_corpus_checks.py"
+  "evals/run_fixture_checks.py"
   "README.md"
+  "CHANGELOG.md"
   "docs/INSTALLATION.md"
   "docs/USAGE.md"
   "docs/MAINTAINING.md"
@@ -52,7 +60,7 @@ if not match:
 frontmatter = match.group(1)
 required = {
     "name: antigravityqb",
-    "description: Vibecoding-first Antigravity planning with autopsy, ontology, ledger memory, helper-agent-aware QA, and gated handoff.",
+    "description: Vibecoding-first Antigravity planning with evidence-backed comprehension, autopsy, ontology, ledger continuity, helper-agent-aware QA, and gated handoff.",
 }
 missing = sorted(item for item in required if item not in frontmatter)
 if missing:
@@ -358,4 +366,5 @@ if [[ "${ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS:-0}" == "1" ]]; then
   echo "unit_tests_skipped=1"
 else
   python3 -m unittest discover -s tests -v
+  python3 evals/run_fixture_corpus_checks.py
 fi

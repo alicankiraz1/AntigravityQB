@@ -1,0 +1,8 @@
+{
+  "id": "clean-layered-service",
+  "description": "Clean layered service with aligned intended and implemented architecture.",
+  "expected_comprehension_signals": ["layered flow", "test evidence", "source evidence"],
+  "expected_trace_ids": ["TRACE-lease-renewal"],
+  "expected_architecture_statuses": ["convergent"],
+  "expected_quality_checks": ["traceability_coverage", "artifact_schema_compliance"]
+}

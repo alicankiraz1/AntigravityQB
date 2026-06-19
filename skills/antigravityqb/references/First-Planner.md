@@ -75,7 +75,7 @@ Use the following principles while planning:
    - keep phases action-guiding but leave room for discovery during Step 4;
    - identify small reversible slices and fast validation signals;
    - never relax safety, secret, approval, validation, or file-boundary rules.
-13. If existing `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md` exists, read it as supporting evidence for replanning continuity and project understanding. Repository state and user-confirmed intent still win over stale ledger or ontology entries.
+13. If existing `Planner-docs/Planing-Ledger.md`, `Planner-docs/Project-Ontology.md`, or `Planner-docs/Project-Comprehension.md` exists, read it as supporting evidence for replanning continuity and project understanding. Repository state and user-confirmed intent still win over stale ledger, ontology, or comprehension entries. Step 1 writes `Planner-docs/Main-Planing.md`; it may update an existing ledger only when the user explicitly asks for that continuity note, and it must not create a new ledger.
 14. Apply domain-appropriate computer science and secure engineering principles such as clear boundaries, state modeling, contracts, test strategy, threat modeling, least privilege, and safe command/path handling. Do not cargo-cult methods that do not fit the project.
 15. For Antigravity task readiness, include rough token/context risk and autonomy/review assumptions. Use low/medium/high estimates unless the user provides a concrete budget baseline; do not invent exact token spend or percentages.
 
@@ -118,7 +118,7 @@ Run only read-only or safe local commands such as:
 - for d in Planner-docs configs scripts services packages tests; do [ -d "$d" ] && ls "$d"; done
 - cat README.md if present
 - cat AGENTS.md if present
-- inspect pyproject.toml, package.json, Makefile, docker-compose files, CI workflow files, docs indexes, architecture docs, runbooks, test files, config examples, Planner-docs/Planing-Ledger.md, and Planner-docs/Project-Ontology.md if present
+- inspect pyproject.toml, package.json, Makefile, docker-compose files, CI workflow files, docs indexes, architecture docs, runbooks, test files, config examples, Planner-docs/Planing-Ledger.md, Planner-docs/Project-Ontology.md, and Planner-docs/Project-Comprehension.md if present
 
 You may use ripgrep/grep to discover important project markers:
 - rg "TODO|FIXME|Phase|phase|roadmap|architecture|runbook|readiness|activation|production|security|policy|worker|scheduler|gateway|adapter|test|smoke|CI|Linear|GitHub|Temporal|LangGraph|LiteLLM|Antigravity|OpenCode|Claude|Gemini|API|database|Postgres|queue|artifact|approval|review" . --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
@@ -131,7 +131,7 @@ If the repo is empty or almost empty:
 - Explicitly state that repository evidence is limited.
 
 If the repo already has Planner-docs/plans:
-- Read them, including `Planing-Ledger.md` and `Project-Ontology.md` when present.
+- Read them, including `Planing-Ledger.md`, `Project-Ontology.md`, and `Project-Comprehension.md` when present.
 - Reconcile them instead of blindly duplicating them.
 - Preserve useful existing intent.
 - Identify contradictions, gaps, stale assumptions, and over-planning.
@@ -144,7 +144,7 @@ Create or update:
 
 Planner-docs/Main-Planing.md
 
-The document body is English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
+The document body is English by default unless the user explicitly requests another content language. Required document headings remain English for validator stability.
 
 Use clear headings and a professional engineering-planning tone.
 
@@ -295,7 +295,7 @@ Include:
 - which phases should not be expanded yet;
 - what evidence Step 2 should collect;
 - what decisions need human confirmation before detailed implementation;
-- what prior implementation history from `Planing-Ledger.md` must be preserved;
+- what prior implementation history from `Planing-Ledger.md` and evidence/confidence or CQ/TRACE/ARC signals from `Project-Comprehension.md` must be preserved;
 - what ontology terms, entities, workflows, and invariants Step 2 must keep consistent;
 - whether helper agents are recommended for Step 2;
 - expected Antigravity task token/context risk and validation checkpoints.
@@ -308,7 +308,7 @@ List:
 - important files inspected;
 - important commands run;
 - important existing docs found;
-- whether `Planing-Ledger.md` or `Project-Ontology.md` existed and was used;
+- whether `Planing-Ledger.md`, `Project-Ontology.md`, or `Project-Comprehension.md` existed and was used;
 - important assumptions made;
 - things not verified.
 
@@ -346,9 +346,9 @@ Validation after writing:
 After creating/updating Planner-docs/Main-Planing.md:
 1. Read the file back.
 2. Check that all required top-level sections exist.
-3. Check that the document follows the language contract: English by default unless the user explicitly requests another body language, with required headings in English.
+3. Check that the document follows the language contract: English by default unless the user explicitly requests another content language, with required headings in English.
 4. Check that it does not contain secrets.
-5. If `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md` exists, confirm the plan used them as supporting evidence.
+5. If `Planner-docs/Planing-Ledger.md`, `Planner-docs/Project-Ontology.md`, or `Planner-docs/Project-Comprehension.md` exists, confirm the plan used them as supporting evidence.
 6. Run git diff -- Planner-docs/Main-Planing.md and review the diff.
 7. Provide a final concise summary of:
    - what file was changed;

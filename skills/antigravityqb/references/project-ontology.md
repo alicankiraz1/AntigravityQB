@@ -37,6 +37,20 @@ Planner-docs/Project-Ontology.md
 - security, compliance, or business invariants;
 - ambiguous terms that require human confirmation.
 
+## Competency Questions
+
+When useful, add a `### Competency Questions` subsection under `## 8. Open Ontology Questions`.
+
+Use this table shape:
+
+```markdown
+| Question ID | Question | Status | Evidence |
+|---|---|---|---|
+| OQ-01 | Which component owns task lease renewal? | open | unknown |
+```
+
+Allowed statuses are `answered`, `partially_answered`, `open`, and `contradicted`.
+
 ## How to Use It
 
 - Step 1.5 should create or update the ontology for existing projects when enough evidence exists.

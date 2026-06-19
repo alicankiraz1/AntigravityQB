@@ -1,0 +1,8 @@
+{
+  "id": "runtime-only-behavior",
+  "description": "Correct understanding requires noting runtime/smoke evidence rather than static claims only.",
+  "expected_comprehension_signals": ["runtime evidence", "smoke script", "next probe"],
+  "expected_trace_ids": ["TRACE-gateway-status"],
+  "expected_architecture_statuses": ["uncertain"],
+  "expected_quality_checks": ["open_question_quality", "artifact_schema_compliance"]
+}

@@ -1,6 +1,9 @@
 # Usage
 
-AntigravityQB runs a vibecoding-first, repo-aware planning workflow with optional Step 1.5 Autopsy, project ontology, and planning ledger continuity for existing projects.
+artifact_schema_version: 2
+handoff_contract_version: 1
+
+AntigravityQB runs a vibecoding-first, repo-aware planning workflow with optional Step 1.5 Autopsy, project ontology, project comprehension, and planning ledger continuity for existing projects.
 
 The workflow is planning-first. AntigravityQB creates and audits `Planner-docs/` artifacts during Steps 1-3, then prints a separate gated implementation prompt for Step 4 only when the audit allows implementation.
 
@@ -8,10 +11,11 @@ Optional continuity artifacts:
 
 ```text
 Planner-docs/Project-Ontology.md
+Planner-docs/Project-Comprehension.md
 Planner-docs/Planing-Ledger.md
 ```
 
-`Project-Ontology.md` preserves vocabulary, entities, workflows, boundaries, integrations, and invariants. `Planing-Ledger.md` records planning runs, implementation summaries, current state snapshots, and replanning inputs so later AntigravityQB runs can understand what was planned and what was applied.
+`Project-Ontology.md` preserves vocabulary, entities, workflows, boundaries, integrations, and invariants. `Project-Comprehension.md` records evidence confidence, comprehension questions, domain-to-code traces, architecture reflexion, quality scenarios, and open hypotheses. `Planing-Ledger.md` records planning runs, implementation summaries, current state snapshots, and replanning inputs so later AntigravityQB runs can understand what was planned and what was applied.
 
 ## Step 1: Main Plan
 
@@ -21,7 +25,7 @@ Open the project repository you want Antigravity to analyze and ask:
 Use the antigravityqb skill to create a main plan for this project.
 ```
 
-AntigravityQB first performs a bounded read-only scan of the current repository. It may inspect files such as `README.md`, `AGENTS.md`, manifests, CI workflows, docs indexes, deployment files, tests, top-level service directories, and any existing `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md`.
+AntigravityQB first performs a bounded read-only scan of the current repository. It may inspect files such as `README.md`, `AGENTS.md`, manifests, CI workflows, docs indexes, deployment files, tests, top-level service directories, and any existing `Planner-docs/Planing-Ledger.md`, `Planner-docs/Project-Ontology.md`, or `Planner-docs/Project-Comprehension.md`.
 
 Then it asks four intake questions, one at a time:
 
@@ -30,7 +34,7 @@ Then it asks four intake questions, one at a time:
 - `TARGET_END_STATE`: what done looks like across product, engineering, operations, security, and user value.
 - `KNOWN_CONSTRAINTS`: team, infrastructure, budget, timeline, stack, compliance, must-use tools, must-not-use tools, desired autonomy level, human review cadence, and any token/usage budget.
 
-AntigravityQB asks intake questions in the user's language when practical. Generated Planner-docs artifacts are English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
+AntigravityQB asks intake questions in the user's language when practical. Generated Planner-docs artifacts are English by default unless the user explicitly requests another content language. Required document headings remain English for validator stability.
 
 After the answers are collected, AntigravityQB loads `First-Planner.md`, substitutes the values, inspects the repository, and creates or updates:
 
@@ -49,9 +53,10 @@ Expected output:
 ```text
 Planner-docs/Autopsy.md
 Planner-docs/Project-Ontology.md   # optional when enough evidence exists
+Planner-docs/Project-Comprehension.md  # optional for non-trivial existing projects
 ```
 
-The Autopsy report analyzes project sections, feature inventory, placeholders/stubs/skeletons, technical debt, missing or broken integrations, test and CI gaps, security/governance issues, operational readiness, and alignment with `Planner-docs/Main-Planing.md`. The optional ontology captures domain vocabulary, entities, workflows, boundaries, integrations, invariants, and open concept questions.
+The Autopsy report analyzes project sections, feature inventory, placeholders/stubs/skeletons, technical debt, missing or broken integrations, test and CI gaps, security/governance issues, operational readiness, and alignment with `Planner-docs/Main-Planing.md`. The optional ontology captures domain vocabulary, entities, workflows, boundaries, integrations, invariants, and open concept questions. The optional comprehension artifact captures confidence, CQ/TRACE/ARC links, architecture drift, quality scenarios, and open hypotheses.
 
 Step 1.5 is skipped for empty or nearly empty repositories. In that case, `Autopsy.md` is not required and Step 2 should continue without it.
 
@@ -68,7 +73,7 @@ After Step 1, AntigravityQB prints a text block for a new Antigravity task or co
 ```text
 Use the antigravityqb skill. Run Step 2 according to references/Second-Planner.md.
 
-Read all main phases in Planner-docs/Main-Planing.md. If Planner-docs/Autopsy.md, Planner-docs/Project-Ontology.md, or Planner-docs/Planing-Ledger.md exists, read it fully as supporting evidence and account for it in the sub-phase plans. Plan in a vibecoding-first style: small reversible slices, fast validation signals, explicit deferrals, secure engineering boundaries, and Antigravity task readiness. For each phase, create Faz-<n>-Plans folders and detailed Faz<n>.<m>-*.md sub-plan files under Planner-docs. Do not stop until all phases are covered. Modify only Planner-docs.
+Read and return the exact canonical handoff from references/handoffs/run-step2.md, then execute it.
 ```
 
 Expected outputs:
@@ -78,7 +83,7 @@ Planner-docs/Sub-Planing-Index.md
 Planner-docs/Faz-<n>-Plans/Faz<n>.<m>-*.md
 ```
 
-`Planner-docs/Main-Planing.md` remains the primary source of truth. `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, and `Planner-docs/Planing-Ledger.md`, when present, are supporting evidence that should influence sub-plan evidence, work breakdowns, acceptance criteria, risks, ontology consistency, and replanning continuity.
+`Planner-docs/Main-Planing.md` remains the primary source of truth. `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, `Planner-docs/Project-Comprehension.md`, and `Planner-docs/Planing-Ledger.md`, when present, are supporting evidence that should influence sub-plan evidence, work breakdowns, acceptance criteria, risks, ontology consistency, traceability, confidence calibration, and replanning continuity.
 
 When manually validating from an AntigravityQB checkout, use:
 
@@ -93,7 +98,7 @@ After Step 2, AntigravityQB prints another text block for a new Antigravity task
 ```text
 Use the antigravityqb skill. Run Step 3 according to references/Third-Planner.md.
 
-Audit Planner-docs/Main-Planing.md, Planner-docs/Sub-Planing-Index.md, Planner-docs/Faz-*-Plans/*.md, and any supporting Planner-docs/Autopsy.md, Planner-docs/Project-Ontology.md, or Planner-docs/Planing-Ledger.md. Analyze main-phase coverage, file naming, sequencing, required section structure, index consistency, content quality, scope drift, readiness realism, ontology consistency, planning-history continuity, security/governance, vibecoding slice quality, and Step 4 readiness. Do not fix any plan files; produce only Planner-docs/Sub-Planing-Audit.md. Do not stop until all phases and sub-plans have been reviewed.
+Read and return the exact canonical handoff from references/handoffs/run-step3.md, then execute it.
 ```
 
 Expected output:
@@ -105,6 +110,7 @@ Planner-docs/Sub-Planing-Audit.md
 When manually validating from an AntigravityQB checkout, use:
 
 ```bash
+python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3-preflight --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3 --strict
 ```
 
@@ -124,15 +130,17 @@ When manually checking readiness from an AntigravityQB checkout, use:
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step4
 ```
 
-If the audit is `BLOCKED` or contains P0/P1 findings, repair the planning package first. If only P2/P3 warnings remain, the implementation prompt may be used but the warnings should stay visible.
+If the audit is `BLOCKED` or contains P0/P1 findings, repair the planning package first. If only open or accepted P2/P3 warnings remain, the implementation prompt may be used only with `PASS_WITH_WARNINGS` and the warnings should stay visible. If the audit says `NO_ACTION_REQUIRED`, Step 4 must report why there is no queue and must not start implementation.
 
-The implementation handoff tells Antigravity to use relevant skills, project rules, helper agents when available, and security review guidance by scope; execute the READY/READY_WITH_WARNINGS queue continuously in small reversible slices; test before or with code changes; report exact blockers; avoid secrets; update `Planner-docs/Planing-Ledger.md` with concise verified-slice or stop-event summaries; and limit token use by reading the audit/index first and only the active sub-plan afterward.
+The implementation handoff comes from `references/handoffs/run-step4.md`. It tells Antigravity to use relevant skills, project rules, helper agents when available, and security review guidance by scope; execute the READY/READY_WITH_WARNINGS queue continuously in small reversible slices; test before or with code changes; report exact blockers; avoid secrets; update `Planner-docs/Planing-Ledger.md` with concise verified-slice or stop-event summaries; and limit token use by reading the audit/index first and only the active sub-plan afterward.
 
 The implementation task should continue to the next acceptance criterion or next queued sub-plan after each verified slice. It should stop only for explicit gates such as P0/P1 or safety/security findings, failing tests, missing required files, plan/audit/repo contradictions, approval or credential blockers, unsafe external mutations, unrelated dirty worktree state, unavailable validation with no fallback, token/context pressure, or a user stop request.
 
 ## Validation Notes
 
-If `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, or `Planner-docs/Planing-Ledger.md` exists, the validator checks required heading order during Step 2/3/4 validation. If these optional continuity docs do not exist, Step 2/3 validation continues without treating them as required. Use `--mode autopsy --strict` after Step 1.5 when `Autopsy.md` should be required.
+If `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, `Planner-docs/Project-Comprehension.md`, or `Planner-docs/Planing-Ledger.md` exists, the validator checks required heading order and supported semantic fields during Step 2/3/4 validation. If these optional continuity docs do not exist, Step 2/3 validation continues without treating them as required. Use `--mode autopsy --strict` after Step 1.5 when `Autopsy.md` should be required.
+
+The validator uses stable exit codes: `0` means validation passed, `1` means document validation failed, and `2` means invocation/configuration/I/O error. With `--strict`, repeated or generic section warnings become failures except documented legacy compatibility warnings.
 
 ## Safety Expectations
 

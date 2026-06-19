@@ -1,0 +1,8 @@
+{
+  "id": "stale-ledger",
+  "description": "Ledger claims must be treated as supporting evidence and checked against current source.",
+  "expected_comprehension_signals": ["stale ledger", "current source wins", "replanning input"],
+  "expected_trace_ids": ["TRACE-auth-login"],
+  "expected_architecture_statuses": ["uncertain"],
+  "expected_quality_checks": ["expected_fact_recall", "uncertainty_calibration"]
+}

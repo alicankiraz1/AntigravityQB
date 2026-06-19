@@ -40,7 +40,7 @@ Each plan should help a coding agent answer:
 5. What is intentionally deferred until more evidence exists?
 6. What must not be touched without human approval?
 
-## Antigravity task Fit
+## Antigravity Task Fit
 
 Long AntigravityQB runs should be phrased as Antigravity task work: define the outcome, unchanged boundaries, validation checkpoints, stop gates, and the final summary expected from the agent.
 

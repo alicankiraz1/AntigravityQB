@@ -2,6 +2,9 @@
 
 **Vibecoding-first repo planning for Google Antigravity.**
 
+artifact_schema_version: 2
+handoff_contract_version: 1
+
 AntigravityQB is a Google Antigravity Agent Skill that turns an existing repository into a durable planning package. It inspects the project, asks a small set of high-signal intake questions, writes structured planning documents, audits those documents, and finally produces a gated implementation handoff prompt for a separate Antigravity task.
 
 The plugin is designed for serious project work where plans need to survive long context windows, implementation needs clear acceptance criteria, and the agent should not start changing product code before the planning package is complete.
@@ -13,11 +16,11 @@ AntigravityQB is the Antigravity-native edition of a repo-aware planning workflo
 AntigravityQB creates a planning workflow around the repository you already have open:
 
 - **Repo-aware intake:** reads the current project before asking questions, then proposes practical defaults for project name, intent, target state, and constraints.
-- **Project Autopsy + Ontology:** existing projects get a focused `Autopsy.md` report and may get `Project-Ontology.md` to capture vocabulary, entities, boundaries, workflows, integrations, and invariants.
+- **Project Autopsy + Ontology + Comprehension:** existing projects get a focused `Autopsy.md` report and may get `Project-Ontology.md` plus `Project-Comprehension.md` to capture vocabulary, evidence confidence, CQ/TRACE/ARC links, architecture reflexion, quality scenarios, and open validation probes.
 - **Durable planning memory:** writes Markdown files under `Planner-docs/` so the plan, ontology, and implementation ledger can be reviewed, versioned, shared, resumed, and audited.
 - **Phase decomposition:** expands a main plan into ordered phase folders and detailed sub-plan files.
 - **Quality audit:** checks coverage, sequencing, structure, readiness, ontology consistency, planning-history continuity, security/governance concerns, vibecoding slice quality, and implementation preparedness.
-- **Gated Step 4 handoff:** prints a separate implementation prompt only when the audit says implementation can begin.
+- **Gated Step 4 handoff:** prints a separate implementation prompt only when the audit says implementation can begin; canonical Antigravity task handoffs live under `references/handoffs/`.
 - **Queue-continuation semantics:** Step 4 builds an ordered READY/READY_WITH_WARNINGS queue, keeps going through verified slices until a real stop gate is hit, and asks the implementation run to append concise summaries to `Planing-Ledger.md`.
 - **Task delegation guidance:** recommends bounded helper agents/tasks only when they reduce context pollution, improve evidence quality, or separate implementation from review.
 - **Planning-only guardrails:** keeps P0/P1 audit gates, secret/token hygiene, file boundaries, and implementation safety rules visible at the skill level.
@@ -135,7 +138,7 @@ The `Planing` spelling is intentionally preserved because the bundled prompts an
 | Step | Purpose | Output |
 | --- | --- | --- |
 | Step 1 | Repository scan, intake questions, and master plan creation. | `Planner-docs/Main-Planing.md` |
-| Step 1.5 | Existing-project autopsy and optional ontology capture when the repo is already built or partially built. | `Planner-docs/Autopsy.md`, optional `Planner-docs/Project-Ontology.md` |
+| Step 1.5 | Existing-project autopsy plus optional ontology and comprehension capture when the repo is already built or partially built. | `Planner-docs/Autopsy.md`, optional `Planner-docs/Project-Ontology.md`, optional `Planner-docs/Project-Comprehension.md` |
 | Step 2 | Full phase and sub-plan generation. | `Planner-docs/Sub-Planing-Index.md`, `Planner-docs/Faz-*-Plans/*.md` |
 | Step 3 | Read-only QA audit of the planning package. | `Planner-docs/Sub-Planing-Audit.md` |
 | Step 4 | Copy-ready implementation handoff prompt for a separate task and optional implementation ledger updates. | Text prompt only, optional `Planner-docs/Planing-Ledger.md` updates |
@@ -149,13 +152,13 @@ AntigravityQB scans the repository and asks:
 - `TARGET_END_STATE`
 - `KNOWN_CONSTRAINTS`
 
-AntigravityQB asks intake questions in the user's language when practical. Generated Planner-docs artifacts are English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
+AntigravityQB asks intake questions in the user's language when practical. Generated Planner-docs artifacts are English by default unless the user explicitly requests another content language. Required document headings remain English for validator stability.
 
-If `Planner-docs/Planing-Ledger.md` or `Planner-docs/Project-Ontology.md` already exists, Step 1 reads it as supporting history before intake. Current repository state and user-confirmed intent still win over stale continuity docs.
+If `Planner-docs/Planing-Ledger.md`, `Planner-docs/Project-Ontology.md`, or `Planner-docs/Project-Comprehension.md` already exists, Step 1 reads it as supporting history before intake. Current repository state and user-confirmed intent still win over stale continuity docs.
 
 ### Step 1.5: Autopsy
 
-For existing or partially built projects, AntigravityQB creates `Planner-docs/Autopsy.md` and may create `Planner-docs/Project-Ontology.md` when enough evidence exists. The autopsy reviews:
+For existing or partially built projects, AntigravityQB creates `Planner-docs/Autopsy.md` and may create `Planner-docs/Project-Ontology.md` and `Planner-docs/Project-Comprehension.md` when enough evidence exists. The autopsy reviews:
 
 - project structure and major modules;
 - implemented, partial, and missing features;
@@ -167,11 +170,13 @@ For existing or partially built projects, AntigravityQB creates `Planner-docs/Au
 
 `Project-Ontology.md` captures domain vocabulary, entities, concepts, module boundaries, workflows, lifecycles, integrations, invariants, constraints, and open ontology questions.
 
+`Project-Comprehension.md` is optional and intended for medium or large existing projects. It records question-driven comprehension, evidence registers, confidence, domain-to-code trace maps, intended-vs-implemented architecture relations, bounded history/hotspot signals, quality scenarios, and open hypotheses with next probes.
+
 Empty or nearly empty repositories can skip this step.
 
 ### Step 2: Sub-Plans
 
-Step 2 expands every main phase into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md`, `Project-Ontology.md`, and `Planing-Ledger.md` as supporting evidence when present and writes an index at:
+Step 2 expands every main phase into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md`, `Project-Ontology.md`, `Project-Comprehension.md`, and `Planing-Ledger.md` as supporting evidence when present and writes an index at:
 
 ```text
 Planner-docs/Sub-Planing-Index.md
@@ -225,6 +230,7 @@ Planner-docs/
   Main-Planing.md
   Autopsy.md
   Project-Ontology.md
+  Project-Comprehension.md
   Planing-Ledger.md
   Sub-Planing-Index.md
   Sub-Planing-Audit.md
@@ -236,7 +242,7 @@ Planner-docs/
     Faz2.2-*.md
 ```
 
-`Autopsy.md`, `Project-Ontology.md`, and `Planing-Ledger.md` are optional depending on repository maturity and prior runs. The phase and sub-plan count depends on the project scope.
+`Autopsy.md`, `Project-Ontology.md`, `Project-Comprehension.md`, and `Planing-Ledger.md` are optional depending on repository maturity and prior runs. The phase and sub-plan count depends on the project scope.
 
 ## Validation
 
@@ -246,17 +252,29 @@ From an AntigravityQB checkout, validate generated planner docs with:
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step1
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode autopsy --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step2 --strict
+python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3-preflight --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3 --strict
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step4
 ```
 
-The validator checks required sections, optional ontology/ledger headings, phase folders, filename conventions, index references, duplicate numbering, unindexed files, length-bounded secret patterns, and Step 4 readiness. P0/P1 audit findings block the implementation handoff.
+The validator checks required sections, optional autopsy/ontology/comprehension/ledger headings, phase folders, filename conventions, index references, duplicate numbering, unindexed files, length-bounded secret patterns, and Step 4 readiness. In `--mode step4`, open P0/P1 audit findings block implementation readiness, open or accepted P2/P3 findings require `PASS_WITH_WARNINGS`, resolved or not-applicable P2/P3 findings may coexist with `PASS`, and `NO_ACTION_REQUIRED` is valid when all in-scope rows are COMPLETE, SUPERSEDED, or DEFERRED.
+
+| Mode | Purpose |
+| --- | --- |
+| `step1` | Validate `Main-Planing.md`. |
+| `autopsy` | Require and validate `Autopsy.md` plus optional continuity artifacts. |
+| `step2` | Validate Step 2 artifacts and optional continuity artifacts. |
+| `step3-preflight` | Validate Step 2 artifacts before `Sub-Planing-Audit.md` exists. |
+| `step3` | Validate Step 2 artifacts plus the audit. |
+| `step4` | Enforce semantic readiness, finding status, NO_ACTION_REQUIRED, and Ledger v2 strict execution gates. |
 
 Maintainers should run the full package check before release:
 
 ```bash
 make check
 ```
+
+The repository also includes a deterministic fixture corpus under `evals/` so future live skill evaluations have stable inputs.
 
 `make check` validates:
 

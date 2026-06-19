@@ -4,4 +4,6 @@ check:
 	bash scripts/validate.sh
 
 export-sanitized:
-	git archive --format=zip --output AntigravityQB-sanitized.zip HEAD
+	git diff --quiet
+	git diff --cached --quiet
+	git archive --format=zip --prefix=AntigravityQB/ --output AntigravityQB-sanitized.zip HEAD

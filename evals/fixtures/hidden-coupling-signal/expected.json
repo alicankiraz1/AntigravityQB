@@ -1,0 +1,8 @@
+{
+  "id": "hidden-coupling-signal",
+  "description": "Evolutionary evidence suggests hidden coupling between API and migration files.",
+  "expected_comprehension_signals": ["history evidence", "co-change signal", "hidden coupling"],
+  "expected_trace_ids": ["TRACE-order-create"],
+  "expected_architecture_statuses": ["unmodeled"],
+  "expected_quality_checks": ["traceability_coverage", "uncertainty_calibration"]
+}

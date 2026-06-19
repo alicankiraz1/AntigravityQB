@@ -75,9 +75,9 @@ The validator is read-only. It checks required sections, phase folders,
 filename conventions, index references, duplicate numbering, missing or
 unindexed files, and length-bounded secret patterns.
 
-## Keep Antigravity task Output Concise
+## Keep Antigravity Task Output Concise
 
-- Keep stdout concise during long Antigravity task runs.
+- Keep stdout concise during long Antigravity tasks.
 - Avoid dumping full generated files unless the user explicitly asks.
 - Summarize counts, file paths, blockers, and validation status.
 - Preserve detailed evidence inside the generated Markdown artifacts.
@@ -122,7 +122,7 @@ When comparing an untracked generated file to another file, use
 - Step 2 must read optional `Project-Ontology.md` and `Planing-Ledger.md` when present, then finish by handing off Step 3 as text for Antigravity task.
 - Step 3 must write only `Planner-docs/Sub-Planing-Audit.md`.
 - Step 3 may hand off Step 4 only after `--mode step4` validation passes.
-- Step 4 is implementation work in a new Antigravity task run, not a planning-file generation step.
+- Step 4 is implementation work in a new Antigravity task, not a planning-file generation step.
 
 ## Step 4 Token Discipline
 

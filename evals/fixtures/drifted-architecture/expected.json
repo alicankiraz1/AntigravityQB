@@ -1,0 +1,8 @@
+{
+  "id": "drifted-architecture",
+  "description": "Source relation contradicts documented worker/service/database boundary.",
+  "expected_comprehension_signals": ["architecture drift", "contradicting evidence", "boundary violation"],
+  "expected_trace_ids": ["TRACE-worker-write"],
+  "expected_architecture_statuses": ["divergent"],
+  "expected_quality_checks": ["architecture_drift_recall", "uncertainty_calibration"]
+}

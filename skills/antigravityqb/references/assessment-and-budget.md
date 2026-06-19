@@ -29,7 +29,7 @@ Use qualitative bands unless the user provides a concrete budget:
 
 If the user provides a weekly/monthly token or usage budget, estimate whether the planned run is likely to consume a small, moderate, or large share of that budget. Do not invent percentages without a user-provided budget baseline.
 
-## Antigravity task Estimate
+## Antigravity Task Estimate
 
 For each Antigravity task handoff, include:
 

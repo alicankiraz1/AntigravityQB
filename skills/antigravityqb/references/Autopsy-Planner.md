@@ -18,7 +18,9 @@ IMPORTANT:
   Planner-docs/Autopsy.md
 - When there is enough repository evidence, you may also create or update:
   Planner-docs/Project-Ontology.md
-- If `Planner-docs/Planing-Ledger.md` already exists, read it as supporting history but do not modify it during Step 1.5.
+- For non-trivial existing projects with distributed features, architecture drift, lifecycle complexity, stale prior plans, or unclear runtime behavior, you may also create or update:
+  Planner-docs/Project-Comprehension.md
+- If `Planner-docs/Planing-Ledger.md` already exists, read it as supporting history. Step 1.5 may append or update a concise comprehension-refresh entry only when it can do so without disrupting existing ledger structure. Do not create a new ledger during Step 1.5.
 - If the Planner-docs directory does not exist, create it.
 
 Purpose:
@@ -38,7 +40,7 @@ Primary source:
 Supporting evidence:
 - repository file tree;
 - README.md, AGENTS.md, manifests, Makefile, CI workflows, docs, runbooks, tests, scripts, configs, service/package folders, deployment files, and policy/security files when present;
-- existing Planner-docs files if present, especially `Planing-Ledger.md` and `Project-Ontology.md` when they exist.
+- existing Planner-docs files if present, especially `Planing-Ledger.md`, `Project-Ontology.md`, and `Project-Comprehension.md` when they exist.
 
 Repository inspection requirements:
 
@@ -55,12 +57,16 @@ Run only read-only or safe local commands such as:
 - cat Planner-docs/Main-Planing.md
 - if [ -f Planner-docs/Planing-Ledger.md ]; then cat Planner-docs/Planing-Ledger.md; fi
 - if [ -f Planner-docs/Project-Ontology.md ]; then cat Planner-docs/Project-Ontology.md; fi
+- if [ -f Planner-docs/Project-Comprehension.md ]; then cat Planner-docs/Project-Comprehension.md; fi
 - cat README.md if present
 - cat AGENTS.md if present
 - inspect pyproject.toml, package.json, Cargo.toml, go.mod, Makefile, docker-compose files, CI workflow files, docs indexes, architecture docs, runbooks, tests, config examples, service skeletons, package skeletons, and policy files if present
 
-You may use ripgrep/grep for discovery:
-- rg "TODO|FIXME|TBD|placeholder|stub|mock|fake|skeleton|not implemented|NotImplemented|pass$|Phase|roadmap|architecture|runbook|readiness|activation|production|security|policy|worker|scheduler|gateway|adapter|test|smoke|CI|API|database|Postgres|queue|artifact|approval|review|secret|token|credential" . --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
+You may use ripgrep/grep for normal discovery where matching lines are safe to show:
+- rg "TODO|FIXME|TBD|placeholder|stub|mock|fake|skeleton|not implemented|NotImplemented|pass$|Phase|roadmap|architecture|runbook|readiness|activation|production|security|policy|worker|scheduler|gateway|adapter|test|smoke|CI|API|database|Postgres|queue|artifact|approval|review" . --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
+
+Use file-name-only sensitive discovery so secret-bearing lines are never printed:
+- rg -l "secret|token|credential|api[_-]?key|password|private[_-]?key" . --glob '!.git/**' --glob '!node_modules/**' --glob '!.venv/**' --glob '!dist/**' --glob '!build/**' --glob '!artifacts/**'
 
 Do not print or copy secret values. If a secret-like value is detected, report only the file path and line number with the value redacted. Do not run grep/ripgrep commands that print matching secret-bearing lines; prefer the bundled validator or file-name-only scans such as `rg -l` when fallback discovery is needed.
 
@@ -79,6 +85,7 @@ Focus on:
 - operational readiness and observability gaps;
 - project ontology: domain vocabulary, entities, workflows, boundaries, integrations, and invariants;
 - planning and implementation history from `Planing-Ledger.md` when present;
+- project-comprehension evidence, confidence, traceability, architecture reflexion, and open hypotheses from `Project-Comprehension.md` when present;
 - mismatch between the main plan and actual repository state;
 - feedback that Step 2 must carry into sub-plan generation;
 - where helper agents would improve evidence gathering for later planning or implementation.
@@ -93,9 +100,45 @@ Optionally create or update when enough evidence exists:
 
 Planner-docs/Project-Ontology.md
 
-The document body is English by default unless the user explicitly requests another body language. Required document headings remain English for validator stability.
+Planner-docs/Project-Comprehension.md
+
+The document body is English by default unless the user explicitly requests another content language. Required document headings remain English for validator stability.
 
 Use clear headings and a professional engineering-audit tone.
+
+Read `references/project-comprehension-methods.md` before creating or updating `Planner-docs/Project-Comprehension.md`.
+
+Bounded project-comprehension loop:
+
+Pass 0 — Frame:
+- Generate 8-15 comprehension questions from Main-Planing.md, user intent, repo evidence, and change goal.
+- Give each question an ID such as `CQ-01`, priority, and answer criterion.
+
+Pass 1 — Breadth-first structural scan:
+- Map manifests, entrypoints, components, tests, CI, persistence, integrations, and docs without deep-diving every file.
+
+Pass 2 — Hypothesis loop:
+- Capture why/how/what hypotheses with supporting evidence, contradicting evidence, confidence, and next validation probe.
+
+Pass 3 — Semantic-to-code tracing:
+- Link domain concepts or features to entrypoints, core implementation, state/data, tests, and docs using `TRACE-*` rows.
+
+Pass 4 — Architecture reflexion:
+- Compare intended architecture from docs/plans/ontology with implemented source/config relations using `ARC-*` rows and statuses `convergent`, `divergent`, `absent`, `unmodeled`, or `uncertain`.
+
+Pass 5 — Behavioral and evolutionary evidence:
+- Record safe runtime/test evidence when already available; for live probes, record approval-gated next probes instead of mutating systems.
+- Use bounded git history only as an evolutionary signal, not as proven ownership truth.
+
+Pass 6 — Quality scenarios and synthesis:
+- Capture 3-5 QAW/ATAM-lite scenarios and GQM-style Goal/Question/Evidence checks for the most important risks.
+
+Completion rule:
+- P0/P1 comprehension questions are answered or explicitly open.
+- Major domain concepts have code/test anchors or marked gaps.
+- Major architecture relations are classified.
+- High-confidence claims have evidence.
+- Every open hypothesis has a next probe.
 
 The file must include exactly these top-level sections, in this order:
 
@@ -265,6 +308,25 @@ If you create or update `Planner-docs/Project-Ontology.md`, use exactly these to
 
 The ontology should be concise, evidence-backed, and safe for future Antigravity runs. Do not include secrets, private data, or long logs. If evidence is not strong enough, skip the ontology and explain why in the final summary.
 
+When useful, add a `### Competency Questions` subsection under `## 8. Open Ontology Questions` using statuses `answered`, `partially_answered`, `open`, or `contradicted`.
+
+Project-Comprehension.md requirements:
+
+Create or update `Planner-docs/Project-Comprehension.md` only when the repo is non-trivial enough to need a durable evidence-backed mental model. Use exactly these top-level headings:
+
+# Project Comprehension
+
+## 1. Understanding Goals and Competency Questions
+## 2. Evidence Register and Confidence
+## 3. Domain-to-Code Trace Map
+## 4. Structure, Data, and Runtime Flow Model
+## 5. Intended vs Implemented Architecture
+## 6. Change History, Hotspots, and Ownership Signals
+## 7. Quality Attribute Scenarios and Tradeoffs
+## 8. Open Hypotheses and Validation Probes
+
+Use allowed evidence types `source`, `test`, `runtime`, `history`, `configuration`, `documentation`, and `user-confirmed`. Use confidence values `confirmed`, `probable`, `tentative`, and `contradicted`. Do not mark a claim `confirmed` unless it has executable evidence or two independent evidence types.
+
 Helper agent guidance:
 
 For large or unfamiliar repositories, explicitly ask Antigravity to use bounded read-only helper agents when available:
@@ -273,11 +335,11 @@ For large or unfamiliar repositories, explicitly ask Antigravity to use bounded 
 - `security_reviewer` for secret, policy, approval, and mutation risks;
 - `ontology_mapper` for vocabulary, entities, workflows, integrations, and invariants.
 
-Wait for helper agent findings before writing official artifacts. The parent agent writes `Autopsy.md` and optional `Project-Ontology.md`.
+Wait for helper agent findings before writing official artifacts. The parent agent writes `Autopsy.md`, optional `Project-Ontology.md`, and optional `Project-Comprehension.md`.
 
 Validation after writing:
 
-After creating/updating Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md:
+After creating/updating Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md or Planner-docs/Project-Comprehension.md:
 
 1. Run:
    test -f Planner-docs/Autopsy.md && echo "Autopsy.md exists"
@@ -292,26 +354,26 @@ After creating/updating Planner-docs/Autopsy.md and optional Planner-docs/Projec
    If no validator path is accessible, use only file-name-only fallback scans such as `rg -l` and never print matched secret values.
 
 5. Run:
-   git diff -- Planner-docs/Autopsy.md Planner-docs/Project-Ontology.md
+   git diff -- Planner-docs/Autopsy.md Planner-docs/Project-Ontology.md Planner-docs/Project-Comprehension.md
 
 6. Run:
    git status --short -- Planner-docs
 
-7. Confirm that only Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md were modified by this step.
+7. Confirm that only Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md or Planner-docs/Project-Comprehension.md were modified by this step.
 
 Final response requirements:
 
-After completion, provide a concise final summary using the same language contract: English by default unless the user explicitly requests another body language, with required artifact headings kept in English.
+After completion, provide a concise final summary using the same language contract: English by default unless the user explicitly requests another content language, with required artifact headings kept in English.
 
 Include:
 - whether Step 1.5 succeeded, was skipped, or was blocked;
 - whether Planner-docs/Autopsy.md was created or updated;
 - the highest-priority Autopsy signals;
 - how Step 2 should use the Autopsy report;
-- confirmation that only Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md were modified, or list unexpected modifications.
+- confirmation that only Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md or Planner-docs/Project-Comprehension.md were modified, or list unexpected modifications.
 
 Remember:
-When Step 1.5 is not skipped, only create or update Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md.
+When Step 1.5 is not skipped, only create or update Planner-docs/Autopsy.md and optional Planner-docs/Project-Ontology.md or Planner-docs/Project-Comprehension.md.
 Do not modify source code.
 Do not modify Planner-docs/Main-Planing.md.
 Do not create implementation files.
