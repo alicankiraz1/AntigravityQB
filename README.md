@@ -11,6 +11,20 @@ The plugin is designed for serious project work where plans need to survive long
 
 AntigravityQB is the Antigravity-native edition of a repo-aware planning workflow built around Markdown-based stable planning, validation controls, durable project memory, and controlled implementation handoff. It is meant to reduce context drift in long tasks without turning the planning skill itself into an implementation agent.
 
+## Current Release
+
+Current release: `0.2.1`.
+
+This release brings AntigravityQB to the current QB-family planning contract:
+
+- `artifact_schema_version: 2` and `handoff_contract_version: 1`;
+- optional `Planner-docs/Project-Comprehension.md` for evidence confidence, CQ/TRACE/ARC links, architecture reflexion, quality scenarios, and validation probes;
+- canonical Antigravity task handoffs in `skills/antigravityqb/references/handoffs/`;
+- `step3-preflight` validation before `Sub-Planing-Audit.md` exists;
+- Ledger v2 support with strict Step 4 migration checks for legacy ledgers;
+- semantic Step 4 readiness parsing, `NO_ACTION_REQUIRED`, finding status checks, and unsafe path rejection;
+- deterministic fixture corpus checks under `evals/`.
+
 ## What It Does
 
 AntigravityQB creates a planning workflow around the repository you already have open:
@@ -62,6 +76,14 @@ Install into the Antigravity app global plugin cache:
 
 ```bash
 scripts/install.sh --scope app-global --force
+```
+
+Update all local global Antigravity scopes:
+
+```bash
+scripts/install.sh --scope app-global --force
+scripts/install.sh --scope ide-global --force
+scripts/install.sh --scope cli-global --force
 ```
 
 Install into one Antigravity IDE project:
@@ -284,7 +306,8 @@ The repository also includes a deterministic fixture corpus under `evals/` so fu
 - release secret hygiene in Git checkouts or package secret hygiene in Gitless exports;
 - archive hygiene in Git checkouts or package hygiene in Gitless exports;
 - installer dry-runs;
-- Python unit tests.
+- Python unit tests;
+- fixture corpus integrity.
 
 ## Security And Privacy
 
@@ -310,10 +333,14 @@ If a real key is exposed in chat, logs, docs, examples, or commits, treat it as 
 
 ```text
 .github/workflows/validate.yml
+CHANGELOG.md
 docs/
   INSTALLATION.md
   MAINTAINING.md
   USAGE.md
+evals/
+  run_fixture_corpus_checks.py
+  fixtures/
 scripts/
   install.sh
   validate.sh
@@ -326,8 +353,14 @@ skills/
       task-delegation-playbook.md
       planning-ledger.md
       project-ontology.md
+      project-comprehension-methods.md
+      probe-policy.md
       assessment-and-budget.md
       engineering-principles.md
+      handoffs/
+        run-step2.md
+        run-step3.md
+        run-step4.md
 tests/
 Makefile
 LICENSE
