@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Started the 0.3.x planning contract with `artifact_schema_version: 3` and `handoff_contract_version: 2` for new Step 2 index and active sub-plan artifacts.
+- Added default `wave` Step 2 planning, explicit `full` planning only on user request, Planning Scope Manifest validation, and deferred roadmap-card validation for later phases.
+- Added structured active sub-plan Implementation Contracts with repo-relative path states, structured safe `argv` validation commands, dependency labels, risk domains, and security-review flags.
+- Added dependency-free `scripts/task_run.py` for Antigravity-native `Task-Run.json`, `Task-Prompt.md`, and `Task-Result.json` preview artifacts with source snapshots, policy digests, and BLOCKED results for missing prerequisites.
+- Added dependency-free `scripts/task_apply.py` for local prepare/validate/finalize run-state artifacts, append-only event logging, writer-lock metadata, and expired writer-lock recovery.
+- Added strict-mode migration warnings for legacy Step 2 artifacts that do not yet carry schema v3 frontmatter or the Planning Scope Manifest.
+
 ## 0.2.1
 
 - Added Step 3 preflight validation and made Step 3 require `Planner-docs/Sub-Planing-Audit.md`.

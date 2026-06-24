@@ -478,8 +478,8 @@ class SkillContentTests(unittest.TestCase):
 
         for path in [REPO_ROOT / "README.md", REPO_ROOT / "docs/USAGE.md", REPO_ROOT / "docs/MAINTAINING.md", REPO_ROOT / "docs/INSTALLATION.md"]:
             text = path.read_text(encoding="utf-8")
-            self.assertIn("artifact_schema_version: 2", text, path.name)
-            self.assertIn("handoff_contract_version: 1", text, path.name)
+            self.assertIn("artifact_schema_version: 3", text, path.name)
+            self.assertIn("handoff_contract_version: 2", text, path.name)
 
     def test_local_skill_sync_docs_exclude_python_caches(self) -> None:
         install = (REPO_ROOT / "docs/INSTALLATION.md").read_text(encoding="utf-8")

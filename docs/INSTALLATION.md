@@ -1,7 +1,7 @@
 # Installation
 
-artifact_schema_version: 2
-handoff_contract_version: 1
+artifact_schema_version: 3
+handoff_contract_version: 2
 
 AntigravityQB is distributed as a Google Antigravity Agent Skill folder.
 
@@ -91,7 +91,7 @@ Expected behavior:
 9. For non-trivial existing projects, it may create or update `Planner-docs/Project-Comprehension.md` with evidence confidence, CQ/TRACE/ARC links, architecture reflexion, quality scenarios, and open validation probes.
 10. Later implementation handoffs may update `Planner-docs/Planing-Ledger.md` with concise verified-slice summaries.
 
-AntigravityQB 0.2.1 keeps 0.2.0 planner artifacts readable outside strict execution gates. Legacy `Planing-Ledger.md` v1 files pass non-strict validation with a deprecation warning, but strict Step 4 execution requires Ledger v2 migration before implementation starts.
+AntigravityQB 0.3.0 keeps 0.2.x planner artifacts readable outside strict execution gates. The 0.3.0 planning contract adds schema v3 Step 2 artifact frontmatter, handoff v2 metadata, wave/full planning scope, deferred roadmap cards, structured implementation contracts, task preview artifacts, and local run-state artifacts. Legacy Step 2 artifacts remain readable outside strict mode, but strict validation reports migration warnings until the index and active sub-plans are regenerated with the v3 metadata. Legacy `Planing-Ledger.md` v1 files pass non-strict validation with a deprecation warning, but strict Step 4 execution requires Ledger v2 migration before implementation starts.
 
 ## Verify Local Parity
 

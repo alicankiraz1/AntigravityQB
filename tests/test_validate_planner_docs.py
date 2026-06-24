@@ -91,11 +91,15 @@ INDEX_HEADINGS = [
     "# Sub-Planing Index",
     "## 1. Purpose",
     "## 2. Source Main Plan",
-    "## 3. Phase and Sub-Plan Map",
-    "## 4. Priority Detailing Order",
-    "## 5. Out-of-Scope or Deferred Topics",
-    "## 6. Coverage Check",
-    "## 7. Repository Review Notes",
+    "## 3. Planning Scope Manifest",
+    "## 4. Phase and Sub-Plan Map",
+    "## 5. Execution Waves",
+    "## 6. Parent Acceptance Traceability",
+    "## 7. Decision Register",
+    "## 8. Priority Detailing Order",
+    "## 9. Out-of-Scope or Deferred Topics",
+    "## 10. Coverage Check",
+    "## 11. Repository Review Notes",
 ]
 
 SUBPLAN_HEADINGS = [
@@ -212,7 +216,17 @@ def write_autopsy(docs: Path, headings: list[str] | None = None) -> None:
 
 
 def write_subplan(path: Path, phase: int, subphase: int) -> None:
-    lines = [f"# Faz {phase}.{subphase} — Test Sub-Plan", ""]
+    lines = [
+        "---",
+        "artifact_schema_version: 3",
+        "handoff_contract_version: 2",
+        "generated_by: antigravityqb",
+        "plugin_version: 0.3.0",
+        "---",
+        "",
+        f"# Faz {phase}.{subphase} — Test Sub-Plan",
+        "",
+    ]
     for heading in SUBPLAN_HEADINGS:
         text = body(heading)
         if heading == "## 6. Current Repository Evidence":
@@ -220,20 +234,123 @@ def write_subplan(path: Path, phase: int, subphase: int) -> None:
         if heading == "## 11. Risks and Mitigations":
             text += " placeholder-safe command wording is not a real placeholder."
         lines += [heading, "", text, ""]
+    lines += [
+        "### Implementation Contract",
+        "",
+        "```json",
+        "{",
+        '  "contract_version": 1,',
+        '  "implementation_paths": [',
+        f'    {{"path": "src/feature_{phase}_{subphase}.py", "state": "proposed"}},',
+        f'    {{"path": "tests/test_feature_{phase}_{subphase}.py", "state": "proposed"}}',
+        "  ],",
+        '  "validation_commands": [',
+        "    {",
+        '      "id": "VAL-01",',
+        f'      "argv": ["python3", "-m", "pytest", "tests/test_feature_{phase}_{subphase}.py", "-q"],',
+        '      "cwd": ".",',
+        '      "expected_exit_code": 0,',
+        '      "timeout_seconds": 120,',
+        '      "network": "deny",',
+        '      "probe_tier": 1',
+        "    }",
+        "  ],",
+        f'  "parent_signals": ["MP-PH{phase}-AS-01"],',
+        '  "dependencies": {',
+        '    "depends_on": [],',
+        '    "blocks": [],',
+        '    "can_run_in_parallel_with": [],',
+        '    "activation_conditions": ["Planning fixture exists"]',
+        "  },",
+        f'  "outputs": ["src/feature_{phase}_{subphase}.py", "tests/test_feature_{phase}_{subphase}.py"],',
+        '  "risk_class": "low",',
+        '  "risk_domains": ["none"],',
+        '  "security_review_required": false',
+        "}",
+        "```",
+        "",
+    ]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_index(docs: Path, relative_refs: bool = False) -> None:
+def write_index(
+    docs: Path,
+    relative_refs: bool = False,
+    active_phases: list[int] | None = None,
+    deferred_phases: list[int] | None = None,
+) -> None:
+    active = active_phases or [1, 2]
+    deferred = deferred_phases or []
+    ref_by_phase = {
+        1: "Planner-docs/Faz-1-Plans/Faz1.1-local-contract.md",
+        2: "Planner-docs/Faz-2-Plans/Faz2.1-live-gateway.md",
+        3: "Planner-docs/Faz-3-Plans/Faz3.1-future-readiness.md",
+    }
+    refs = [ref_by_phase[phase] for phase in active if phase in ref_by_phase]
+    if relative_refs and refs:
+        refs = [
+            "Faz-1-Plans/Faz1.1-local-contract.md" if ref.endswith("Faz1.1-local-contract.md") else f"./{ref}"
+            for ref in refs
+        ]
+
+    lines: list[str] = [
+        "---",
+        "artifact_schema_version: 3",
+        "handoff_contract_version: 2",
+        "generated_by: antigravityqb",
+        "plugin_version: 0.3.0",
+        "---",
+        "",
+    ]
+    for heading in INDEX_HEADINGS:
+        lines += [heading, "", body(heading), ""]
+        if heading == "## 3. Planning Scope Manifest":
+            lines += [
+                "```yaml",
+                "planning_mode: wave",
+                f"active_phases: {active}",
+                f"deferred_phases: {deferred}",
+                "max_detailed_subplans: 12",
+                "max_output_words: 12000",
+                "task_token_risk: medium",
+                "review_checkpoint: after_wave_1",
+                "```",
+                "",
+            ]
+        if heading == "## 4. Phase and Sub-Plan Map":
+            lines += [f"- {ref}" for ref in refs] + [""]
+        if heading == "## 5. Execution Waves":
+            lines += [f"- Wave 1: {ref}" for ref in refs] + [""]
+        if heading == "## 9. Out-of-Scope or Deferred Topics" and deferred:
+            lines += [
+                "| Phase | Status | Deferral Reason | Activation Trigger | Earliest Wave |",
+                "|---|---|---|---|---|",
+                *[
+                    f"| Faz {phase} | deferred | Later phase needs active wave evidence. | Complete current active wave. | wave-2 |"
+                    for phase in deferred
+                ],
+                "",
+            ]
+    (docs / "Sub-Planing-Index.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_legacy_index(docs: Path) -> None:
+    legacy_headings = [
+        "# Sub-Planing Index",
+        "## 1. Purpose",
+        "## 2. Source Main Plan",
+        "## 3. Phase and Sub-Plan Map",
+        "## 4. Priority Detailing Order",
+        "## 5. Out-of-Scope or Deferred Topics",
+        "## 6. Coverage Check",
+        "## 7. Repository Review Notes",
+    ]
     refs = [
-        "Faz-1-Plans/Faz1.1-local-contract.md",
-        "./Planner-docs/Faz-2-Plans/Faz2.1-live-gateway.md",
-    ] if relative_refs else [
         "Planner-docs/Faz-1-Plans/Faz1.1-local-contract.md",
         "Planner-docs/Faz-2-Plans/Faz2.1-live-gateway.md",
     ]
-
     lines: list[str] = []
-    for heading in INDEX_HEADINGS:
+    for heading in legacy_headings:
         lines += [heading, "", body(heading), ""]
         if heading == "## 3. Phase and Sub-Plan Map":
             lines += [f"- {ref}" for ref in refs] + [""]
@@ -440,6 +557,46 @@ def write_valid_step2_fixture(root: Path, relative_refs: bool = False) -> Path:
     return docs
 
 
+def write_legacy_step2_fixture(root: Path) -> Path:
+    docs = root / "Planner-docs"
+    (docs / "Faz-1-Plans").mkdir(parents=True)
+    (docs / "Faz-2-Plans").mkdir(parents=True)
+    write_main_plan(docs)
+    write_legacy_index(docs)
+    legacy_subplan = [f"# Faz 1.1 — Test Sub-Plan", ""]
+    for heading in SUBPLAN_HEADINGS:
+        legacy_subplan += [heading, "", body(heading), ""]
+    (docs / "Faz-1-Plans/Faz1.1-local-contract.md").write_text("\n".join(legacy_subplan), encoding="utf-8")
+    legacy_subplan[0] = "# Faz 2.1 — Test Sub-Plan"
+    (docs / "Faz-2-Plans/Faz2.1-live-gateway.md").write_text("\n".join(legacy_subplan), encoding="utf-8")
+    return docs
+
+
+def write_three_phase_main_plan(docs: Path) -> None:
+    lines: list[str] = []
+    for heading in STEP1_HEADINGS:
+        lines += [heading, "", body(heading), ""]
+        if heading == "## 6. Phase-Based Master Roadmap":
+            lines += [
+                "| Phase | Phase name | Goal | Approximate maturity | Main acceptance signals |",
+                "|---|---|---|---|---|",
+                "| 1 | Local Contract Stabilization | Clarify baseline | M3 | make check |",
+                "| 2 | Live Gateway Activation | ready_live evidence | M4 | make smoke |",
+                "| 3 | Production Readiness | operational evidence | M5 | make release-check |",
+                "",
+            ]
+    (docs / "Main-Planing.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_valid_wave_deferred_fixture(root: Path) -> Path:
+    docs = root / "Planner-docs"
+    (docs / "Faz-1-Plans").mkdir(parents=True)
+    write_three_phase_main_plan(docs)
+    write_index(docs, active_phases=[1], deferred_phases=[2, 3])
+    write_subplan(docs / "Faz-1-Plans/Faz1.1-local-contract.md", 1, 1)
+    return docs
+
+
 class ValidatePlannerDocsTests(unittest.TestCase):
 
     def test_autopsy_mode_validates_main_autopsy_and_optional_ontology(self) -> None:
@@ -469,6 +626,68 @@ class ValidatePlannerDocsTests(unittest.TestCase):
             result = run_validator(Path(temp_dir), "step2", strict=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("autopsy_exists=false", result.stdout)
+            self.assertIn("planning_mode=wave", result.stdout)
+
+    def test_step2_wave_mode_accepts_deferred_phase_cards_without_folders(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            write_valid_wave_deferred_fixture(Path(temp_dir))
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("active_phase_count=1", result.stdout)
+            self.assertIn("deferred_phase_count=2", result.stdout)
+
+    def test_step2_legacy_artifacts_get_schema_migration_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            write_legacy_step2_fixture(Path(temp_dir))
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "strict_warning=missing_or_invalid_artifact_schema_version=Planner-docs/Sub-Planing-Index.md::missing",
+                result.stdout,
+            )
+            self.assertIn("strict_warning=missing_planning_scope_manifest=Planner-docs/Sub-Planing-Index.md", result.stdout)
+
+    def test_step2_strict_rejects_missing_implementation_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = write_valid_step2_fixture(Path(temp_dir))
+            path = docs / "Faz-1-Plans/Faz1.1-local-contract.md"
+            text = path.read_text(encoding="utf-8")
+            path.write_text(text.split("### Implementation Contract", 1)[0], encoding="utf-8")
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "strict_warning=subplan_missing_implementation_contract=Planner-docs/Faz-1-Plans/Faz1.1-local-contract.md::missing_section",
+                result.stdout,
+            )
+
+    def test_step2_strict_rejects_unsafe_implementation_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = write_valid_step2_fixture(Path(temp_dir))
+            path = docs / "Faz-1-Plans/Faz1.1-local-contract.md"
+            text = path.read_text(encoding="utf-8").replace('"src/feature_1_1.py"', '"/tmp/feature.py"', 1)
+            path.write_text(text, encoding="utf-8")
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "strict_warning=subplan_invalid_implementation_path=Planner-docs/Faz-1-Plans/Faz1.1-local-contract.md::/tmp/feature.py",
+                result.stdout,
+            )
+
+    def test_step2_strict_rejects_mutating_validation_command(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docs = write_valid_step2_fixture(Path(temp_dir))
+            path = docs / "Faz-1-Plans/Faz1.1-local-contract.md"
+            text = path.read_text(encoding="utf-8").replace(
+                '"argv": ["python3", "-m", "pytest", "tests/test_feature_1_1.py", "-q"]',
+                '"argv": ["npm", "run", "deploy"]',
+            )
+            path.write_text(text, encoding="utf-8")
+            result = run_validator(Path(temp_dir), "step2", strict=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "strict_warning=subplan_missing_exact_validation_command=Planner-docs/Faz-1-Plans/Faz1.1-local-contract.md",
+                result.stdout,
+            )
 
     def test_cli_step2_success_smoke_uses_timeout(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

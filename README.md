@@ -2,8 +2,8 @@
 
 **Vibecoding-first repo planning for Google Antigravity.**
 
-artifact_schema_version: 2
-handoff_contract_version: 1
+artifact_schema_version: 3
+handoff_contract_version: 2
 
 AntigravityQB is a Google Antigravity Agent Skill that turns an existing repository into a durable planning package. It inspects the project, asks a small set of high-signal intake questions, writes structured planning documents, audits those documents, and finally produces a gated implementation handoff prompt for a separate Antigravity task.
 
@@ -11,31 +11,25 @@ The plugin is designed for serious project work where plans need to survive long
 
 AntigravityQB is the Antigravity-native edition of a repo-aware planning workflow built around Markdown-based stable planning, validation controls, durable project memory, and controlled implementation handoff. It is meant to reduce context drift in long tasks without turning the planning skill itself into an implementation agent.
 
-## Current Release
+## Current Version
 
-Current release: `0.2.1`.
+Current package version in this branch: `0.3.0`.
 
-This release brings AntigravityQB to the current QB-family planning contract:
+The latest stable public release before this branch was `0.2.1`. That release remains readable: legacy schema v2 Step 2 artifacts and Ledger v1 files are accepted outside strict execution gates, with migration warnings where appropriate.
 
-- `artifact_schema_version: 2` and `handoff_contract_version: 1`;
-- optional `Planner-docs/Project-Comprehension.md` for evidence confidence, CQ/TRACE/ARC links, architecture reflexion, quality scenarios, and validation probes;
-- canonical Antigravity task handoffs in `skills/antigravityqb/references/handoffs/`;
-- `step3-preflight` validation before `Sub-Planing-Audit.md` exists;
-- Ledger v2 support with strict Step 4 migration checks for legacy ledgers;
-- semantic Step 4 readiness parsing, `NO_ACTION_REQUIRED`, finding status checks, and unsafe path rejection;
-- deterministic fixture corpus checks under `evals/`.
+The 0.3.0 line updates AntigravityQB to the next planning contract:
+
+- `artifact_schema_version: 3` and `handoff_contract_version: 2` for generated Step 2 index and active sub-plan artifacts;
+- schema v3 frontmatter with `generated_by: antigravityqb` and `plugin_version: 0.3.0`;
+- default `wave` Step 2 planning, explicit `full` planning only when requested, and deferred roadmap cards for later phases;
+- structured active sub-plan Implementation Contracts with repo-relative path states, dependency labels, risk domains, security-review flags, and safe structured `argv` validation commands;
+- stricter Step 3 audit guidance for active/deferred scope, implementation contracts, parent acceptance traceability, and decision registers;
+- local `scripts/task_run.py` preview artifacts: `Task-Run.json`, `Task-Prompt.md`, and `Task-Result.json` with source snapshots, policy digests, and BLOCKED results for missing prerequisites;
+- local `scripts/task_apply.py` run-state artifacts: `Progress.json`, `Events.jsonl`, `Writer-Lock.json`, and `Result.json` for prepare, validate, finalize, and expired writer-lock recovery without executing product work.
 
 ## Development Plan
 
-The next Antigravity-native adaptation plan is tracked in [antigravity-gelistirme2506.md](antigravity-gelistirme2506.md). The stable public release remains `0.2.1`; the plan separates future 0.3.x work from the install and validation instructions below.
-
-Planned 0.3.x work should stay Antigravity-native while adding:
-
-- schema v3 and handoff v2 planning metadata;
-- adaptive `wave` and `full` Step 2 planning;
-- structured implementation contracts with safe `argv` validation commands;
-- policy-digest style run safety checks;
-- local run artifacts that avoid vendor-specific paths, commands, and agent APIs.
+The Antigravity-native 0.3.0 adaptation plan is tracked in [antigravity-gelistirme2506.md](antigravity-gelistirme2506.md). The implemented branch covers the schema v3/handoff v2 planning contract, adaptive Step 2 planning, structured implementation contracts, task preview artifacts, and local run-state artifacts. Release/export hardening and installed-copy parity remain separate release-readiness gates before making a formal archive or install claim.
 
 ## What It Does
 
@@ -173,7 +167,7 @@ The `Planing` spelling is intentionally preserved because the bundled prompts an
 | --- | --- | --- |
 | Step 1 | Repository scan, intake questions, and master plan creation. | `Planner-docs/Main-Planing.md` |
 | Step 1.5 | Existing-project autopsy plus optional ontology and comprehension capture when the repo is already built or partially built. | `Planner-docs/Autopsy.md`, optional `Planner-docs/Project-Ontology.md`, optional `Planner-docs/Project-Comprehension.md` |
-| Step 2 | Full phase and sub-plan generation. | `Planner-docs/Sub-Planing-Index.md`, `Planner-docs/Faz-*-Plans/*.md` |
+| Step 2 | Active-horizon phase and sub-plan generation, with deferred roadmap cards for later phases unless `full` planning is explicit. | `Planner-docs/Sub-Planing-Index.md`, `Planner-docs/Faz-*-Plans/*.md` |
 | Step 3 | Read-only QA audit of the planning package. | `Planner-docs/Sub-Planing-Audit.md` |
 | Step 4 | Copy-ready implementation handoff prompt for a separate task and optional implementation ledger updates. | Text prompt only, optional `Planner-docs/Planing-Ledger.md` updates |
 
@@ -210,13 +204,13 @@ Empty or nearly empty repositories can skip this step.
 
 ### Step 2: Sub-Plans
 
-Step 2 expands every main phase into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md`, `Project-Ontology.md`, `Project-Comprehension.md`, and `Planing-Ledger.md` as supporting evidence when present and writes an index at:
+Step 2 expands the active planning horizon into detailed sub-plan files under `Planner-docs/Faz-<n>-Plans/`. It uses `Autopsy.md`, `Project-Ontology.md`, `Project-Comprehension.md`, and `Planing-Ledger.md` as supporting evidence when present and writes an index at:
 
 ```text
 Planner-docs/Sub-Planing-Index.md
 ```
 
-Step 2 should continue until all phases from the main plan are represented.
+Step 2 defaults to `wave` mode: every main phase must be classified as active or deferred, active phases get detailed files, and deferred phases get roadmap cards with deferral reason, activation trigger, and earliest wave. Use `full` mode only when the user explicitly asks for full-project decomposition.
 
 ### Step 3: QA Audit
 
@@ -310,6 +304,24 @@ make check
 
 The repository also includes a deterministic fixture corpus under `evals/` so future live skill evaluations have stable inputs.
 
+For local task preview artifacts, run:
+
+```bash
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step2
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step3
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step4
+```
+
+The helper writes under `Planner-docs/Task-Runs/<task-run-id>/` and does not execute product validation, implementation, commit, push, deploy, dependency install, or global configuration changes.
+
+For local run state around a preview:
+
+```bash
+python3 skills/antigravityqb/scripts/task_apply.py prepare --root /path/to/project --stage step2 --evidence "planner prerequisites validated"
+python3 skills/antigravityqb/scripts/task_apply.py validate --run-dir /path/to/project/Planner-docs/Task-Runs/<task-run-id>
+python3 skills/antigravityqb/scripts/task_apply.py finalize --run-dir /path/to/project/Planner-docs/Task-Runs/<task-run-id> --evidence "final review complete"
+```
+
 `make check` validates:
 
 - required repository files;
@@ -359,7 +371,10 @@ scripts/
 skills/
   antigravityqb/
     SKILL.md
-    scripts/validate_planner_docs.py
+    scripts/
+      validate_planner_docs.py
+      task_run.py
+      task_apply.py
     references/
       vibecoding-principles.md
       task-delegation-playbook.md

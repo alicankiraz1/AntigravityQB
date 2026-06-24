@@ -137,8 +137,10 @@ Audit objectives:
 You must evaluate:
 
 1. Phase coverage
-- Every main phase in Main-Planing.md must have a matching Planner-docs/Faz-<number>-Plans/ folder.
-- Every main phase must have at least one sub-plan file.
+- Every main phase in Main-Planing.md must be classified exactly once as active or deferred in the Planning Scope Manifest.
+- Every active phase must have a matching Planner-docs/Faz-<number>-Plans/ folder and at least one sub-plan file.
+- Every deferred phase must have a roadmap card with deferral reason, activation trigger, and earliest wave.
+- Deferred phases should not have detailed folders unless the index explicitly justifies why.
 - No major phase should be silently missing.
 - No generated phase folder should exist without a corresponding main phase unless clearly justified.
 
@@ -168,8 +170,12 @@ Check:
 Check Planner-docs/Sub-Planing-Index.md against actual files.
 
 Verify:
+- It contains a valid Planning Scope Manifest.
+- Active and deferred phases together cover every Main-Planing.md phase exactly once.
 - It references all phase folders.
 - It references all generated sub-plan files.
+- It contains a deferred roadmap card for every deferred phase.
+- It contains Execution Waves, Parent Acceptance Traceability, and Decision Register entries.
 - It does not reference missing files.
 - It does not omit existing sub-plan files.
 - Detected phase count matches Main-Planing.md.
@@ -320,14 +326,17 @@ Do not include secrets.
 
 ## 3. Main Phase Coverage Analysis
 
-Create a table comparing Main-Planing.md phases to generated folders and sub-plans.
+Create a table comparing Main-Planing.md phases to active folders, sub-plans, and deferred cards.
 
 Columns:
 - Main phase no
 - Main phase heading
+- Planning status: active, deferred, missing, or extra
 - Expected folder
 - Folder exists?
 - Sub-plan count
+- Deferred card exists?
+- Activation trigger
 - Coverage status
 - Notes
 
@@ -368,9 +377,12 @@ If no issues, explicitly say no naming/order issues were found.
 Compare Sub-Planing-Index.md to actual files.
 
 Report:
+- Planning Scope Manifest errors;
 - missing references;
 - broken references;
 - unindexed files;
+- missing deferred cards;
+- missing or invalid Execution Waves, Parent Acceptance Traceability, or Decision Register rows;
 - phase count mismatch;
 - inaccurate coverage claims;
 - questionable execution order.
@@ -401,6 +413,7 @@ Analyze:
 - whether dependencies are explicit;
 - whether the plan is suitable for vibecoding-first small verified slices;
 - whether token/context risk and helper agent usefulness are clear where relevant.
+- whether active sub-plans include valid machine-readable implementation contracts with safe repo-relative paths, structured `argv` validation commands, dependency labels, risk domains, and security-review flags.
 
 Be direct. If the docs are generic, over-specified, or not useful for coding agents, say so.
 

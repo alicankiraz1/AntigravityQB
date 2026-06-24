@@ -14,6 +14,8 @@ class AntigravityPackagingTests(unittest.TestCase):
         required = [
             "skills/antigravityqb/SKILL.md",
             "skills/antigravityqb/scripts/validate_planner_docs.py",
+            "skills/antigravityqb/scripts/task_run.py",
+            "skills/antigravityqb/scripts/task_apply.py",
             "skills/antigravityqb/references/First-Planner.md",
             "skills/antigravityqb/references/Autopsy-Planner.md",
             "skills/antigravityqb/references/Second-Planner.md",

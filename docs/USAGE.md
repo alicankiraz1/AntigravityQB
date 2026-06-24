@@ -1,7 +1,7 @@
 # Usage
 
-artifact_schema_version: 2
-handoff_contract_version: 1
+artifact_schema_version: 3
+handoff_contract_version: 2
 
 AntigravityQB runs a vibecoding-first, repo-aware planning workflow with optional Step 1.5 Autopsy, project ontology, project comprehension, and planning ledger continuity for existing projects.
 
@@ -85,11 +85,31 @@ Planner-docs/Faz-<n>-Plans/Faz<n>.<m>-*.md
 
 `Planner-docs/Main-Planing.md` remains the primary source of truth. `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, `Planner-docs/Project-Comprehension.md`, and `Planner-docs/Planing-Ledger.md`, when present, are supporting evidence that should influence sub-plan evidence, work breakdowns, acceptance criteria, risks, ontology consistency, traceability, confidence calibration, and replanning continuity.
 
+Step 2 uses the schema v3 planning contract for new or rewritten index and active sub-plan artifacts. The default mode is `wave`: every main phase is classified as active or deferred, active phases receive detailed sub-plan files, and deferred phases are kept visible as roadmap cards with deferral reason, activation trigger, and earliest wave. Active sub-plans include a structured `### Implementation Contract` JSON block with repo-relative path states, structured safe `argv` validation commands, dependency labels, risk domains, and security-review flags. Use `full` only when the user explicitly asks for full-project decomposition.
+
 When manually validating from an AntigravityQB checkout, use:
 
 ```bash
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step2 --strict
 ```
+
+To create local preview artifacts without starting execution, use:
+
+```bash
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step2
+```
+
+The preview helper writes `Task-Run.json`, `Task-Prompt.md`, and `Task-Result.json` under `Planner-docs/Task-Runs/<task-run-id>/`. It records source snapshots and policy metadata, and returns BLOCKED instead of an execution prompt when prerequisites are missing.
+
+To add local run state around that preview without executing product work:
+
+```bash
+python3 skills/antigravityqb/scripts/task_apply.py prepare --root /path/to/project --stage step2 --evidence "planner prerequisites validated"
+python3 skills/antigravityqb/scripts/task_apply.py validate --run-dir /path/to/project/Planner-docs/Task-Runs/<task-run-id>
+python3 skills/antigravityqb/scripts/task_apply.py finalize --run-dir /path/to/project/Planner-docs/Task-Runs/<task-run-id> --evidence "final review complete"
+```
+
+`task_apply.py` maintains `Progress.json`, append-only `Events.jsonl`, `Writer-Lock.json`, and `Result.json`. It also supports `recover-lock` for expired writer locks.
 
 ## Step 3: Sub-Plan QA Audit
 
@@ -114,6 +134,12 @@ python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/pr
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step3 --strict
 ```
 
+The task preview helper also supports Step 3:
+
+```bash
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step3
+```
+
 ## Step 4: Gated Implementation Handoff
 
 After Step 3, AntigravityQB may print a Step 4 implementation prompt. This prompt is for a separate Antigravity implementation task; AntigravityQB itself does not implement product changes during Steps 1-3.
@@ -128,6 +154,12 @@ When manually checking readiness from an AntigravityQB checkout, use:
 
 ```bash
 python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/project --mode step4
+```
+
+The task preview helper supports Step 4 readiness artifact generation:
+
+```bash
+python3 skills/antigravityqb/scripts/task_run.py --root /path/to/project --stage step4
 ```
 
 If the audit is `BLOCKED` or contains P0/P1 findings, repair the planning package first. If only open or accepted P2/P3 warnings remain, the implementation prompt may be used only with `PASS_WITH_WARNINGS` and the warnings should stay visible. If the audit says `NO_ACTION_REQUIRED`, Step 4 must report why there is no queue and must not start implementation.

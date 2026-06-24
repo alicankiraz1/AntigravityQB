@@ -130,7 +130,7 @@ if [[ -n "${PLUGIN_ROOT:-}" ]]; then
   cat > "$PLUGIN_ROOT/plugin.json" <<'JSON'
 {
   "name": "antigravityqb",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Repo-aware planning, evidence-backed comprehension, autopsy, audit, and gated implementation handoff for Google Antigravity.",
   "author": {
     "name": "AntigravityQB maintainers"
@@ -145,7 +145,7 @@ if [[ -n "${PLUGIN_ROOT:-}" ]]; then
 }
 JSON
   cat > "$PLUGIN_ROOT/installed_version.json" <<'JSON'
-{"version": "0.2.1"}
+{"version": "0.3.0"}
 JSON
 fi
 echo "installed_skill=$DEST"

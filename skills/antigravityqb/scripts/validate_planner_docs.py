@@ -8,6 +8,7 @@ AntigravityQB generates without editing or normalizing them.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from collections import defaultdict
@@ -94,18 +95,23 @@ LEDGER_V2_HEADINGS = [
 
 LEDGER_HEADINGS = LEDGER_V2_HEADINGS
 
-ARTIFACT_SCHEMA_VERSION = 2
-HANDOFF_CONTRACT_VERSION = 1
+ARTIFACT_SCHEMA_VERSION = 3
+HANDOFF_CONTRACT_VERSION = 2
+PLUGIN_VERSION = "0.3.0"
 
 INDEX_HEADINGS = [
     "# Sub-Planing Index",
     "## 1. Purpose",
     "## 2. Source Main Plan",
-    "## 3. Phase and Sub-Plan Map",
-    "## 4. Priority Detailing Order",
-    "## 5. Out-of-Scope or Deferred Topics",
-    "## 6. Coverage Check",
-    "## 7. Repository Review Notes",
+    "## 3. Planning Scope Manifest",
+    "## 4. Phase and Sub-Plan Map",
+    "## 5. Execution Waves",
+    "## 6. Parent Acceptance Traceability",
+    "## 7. Decision Register",
+    "## 8. Priority Detailing Order",
+    "## 9. Out-of-Scope or Deferred Topics",
+    "## 10. Coverage Check",
+    "## 11. Repository Review Notes",
 ]
 
 SUBPLAN_HEADINGS = [
@@ -244,9 +250,46 @@ ALLOWED_READINESS_STATUSES = {
     "SUPERSEDED",
     "DEFERRED",
 }
+ALLOWED_PLANNING_MODES = {"wave", "full", "refresh", "repair"}
+ALLOWED_TASK_TOKEN_RISKS = {"low", "medium", "high", "very_high"}
+DEFERRED_CARD_HEADERS = ["Phase", "Status", "Deferral Reason", "Activation Trigger", "Earliest Wave"]
 READY_READINESS_STATUSES = {"READY", "READY_WITH_WARNINGS"}
 COMPLETED_READINESS_STATUSES = {"COMPLETE", "SUPERSEDED", "DEFERRED"}
 ALLOWED_DEPENDENCY_STATES = {"satisfied", "independent", "blocked", "unknown"}
+ALLOWED_IMPLEMENTATION_PATH_STATES = {"proposed", "actual"}
+ALLOWED_VALIDATION_NETWORK = {"deny", "none", "allow", "live"}
+ALLOWED_RISK_CLASSES = {"low", "medium", "high", "critical"}
+ALLOWED_RISK_DOMAINS = {
+    "auth",
+    "authorization",
+    "credential",
+    "secret",
+    "external_provider",
+    "network",
+    "command_execution",
+    "deployment",
+    "migration",
+    "stateful_runtime",
+    "distributed_runtime",
+    "online_learning",
+    "reinforcement_learning",
+    "cache",
+    "resume",
+    "checkpoint",
+    "payment",
+    "personal_data",
+    "algorithmic_invariant",
+    "none",
+}
+SECURITY_REVIEW_DOMAINS = ALLOWED_RISK_DOMAINS - {"none", "cache", "resume", "checkpoint"}
+DEPENDENCY_LABELS = {"depends_on", "blocks", "can_run_in_parallel_with", "activation_conditions"}
+SHELL_METACHAR_RE = re.compile(r"(?:&&|\|\||[;&|<>`]|[$]\(|\n|\r)")
+PARENT_SIGNAL_RE = re.compile(r"MP-PH\d+-AS-\d+", re.IGNORECASE)
+MUTATING_COMMAND_INTENT_RE = re.compile(
+    r"\b(?:deploy|publish|push|merge|destroy|delete|remove|prune|reset|checkout|apply|install|upgrade|"
+    r"migrate|seed|prod|production|live|remote|clean)\b",
+    re.IGNORECASE,
+)
 READINESS_HEADERS = [
     "Sub-Plan Path",
     "Status",
@@ -457,6 +500,125 @@ def markdown_link_target(value: str) -> str:
     return match.group(1).strip() if match else value.strip()
 
 
+def safe_repo_path(value: str) -> str | None:
+    target_text = markdown_link_target(value).strip().strip("`")
+    target = Path(target_text)
+    if not target_text or target.is_absolute() or ".." in target.parts:
+        return None
+    if target.parts[0] in {"Planner-docs", ".git"}:
+        return None
+    if target.name.startswith(".env") or target.suffix in {".pem", ".key"}:
+        return None
+    return target.as_posix()
+
+
+def safe_repo_cwd(value: str) -> bool:
+    target_text = value.strip().strip("`")
+    if target_text in {".", "./"}:
+        return True
+    target = Path(target_text)
+    return bool(target_text) and not target.is_absolute() and ".." not in target.parts
+
+
+def safe_validation_argv(argv: object) -> bool:
+    if not isinstance(argv, list) or not argv:
+        return False
+    if not all(isinstance(item, str) and item.strip() for item in argv):
+        return False
+    if any(SHELL_METACHAR_RE.search(item) for item in argv):
+        return False
+
+    executable = Path(argv[0]).name
+    lowered = [item.lower() for item in argv]
+    joined = " ".join(lowered)
+    if MUTATING_COMMAND_INTENT_RE.search(joined):
+        if not (executable == "make" and len(argv) >= 2 and argv[1] in {"check", "test", "lint", "typecheck", "smoke", "ci-local", "release-check"}):
+            return False
+
+    if executable in {"python", "python3"}:
+        if "-c" in argv:
+            return False
+        if len(argv) >= 3 and argv[1] == "-m":
+            return argv[2] in {"pytest", "unittest", "compileall"}
+        script = next((item for item in argv[1:] if item.endswith(".py")), "")
+        return bool(script and safe_repo_path(script))
+    if executable == "pytest":
+        return True
+    if executable == "make":
+        return len(argv) >= 2 and argv[1] in {"check", "test", "lint", "typecheck", "smoke", "ci-local", "release-check"}
+    if executable in {"npm", "pnpm", "yarn"}:
+        return len(argv) >= 3 and argv[1] == "run" and argv[2] in {"test", "lint", "typecheck", "check"}
+    return False
+
+
+def safe_validation_command_item(item: dict[str, object]) -> bool:
+    if "argv" not in item:
+        return False
+    if not safe_validation_argv(item.get("argv")):
+        return False
+    if not safe_repo_cwd(str(item.get("cwd", ""))):
+        return False
+    if not isinstance(item.get("expected_exit_code"), int):
+        return False
+    timeout = item.get("timeout_seconds")
+    if not isinstance(timeout, int) or timeout < 1 or timeout > 3600:
+        return False
+    if item.get("network") not in ALLOWED_VALIDATION_NETWORK:
+        return False
+    probe_tier = item.get("probe_tier")
+    if not isinstance(probe_tier, int) or probe_tier < 1 or probe_tier > 3:
+        return False
+    if item.get("network") in {"allow", "live"} and probe_tier != 3:
+        return False
+    return True
+
+
+def extract_fenced_json_after_heading(text: str, heading: str) -> tuple[object | None, str | None]:
+    section = markdown_section(text, heading)
+    if not section:
+        return None, "missing_section"
+    match = re.search(r"```json\s*(.*?)\s*```", section, flags=re.DOTALL | re.IGNORECASE)
+    if not match:
+        return None, "missing_json_block"
+    try:
+        return json.loads(match.group(1)), None
+    except json.JSONDecodeError as exc:
+        return None, f"invalid_json:{exc.lineno}:{exc.colno}"
+
+
+def frontmatter(text: str) -> dict[str, str]:
+    if not text.startswith("---\n"):
+        return {}
+    end = text.find("\n---", 4)
+    if end == -1:
+        return {}
+    data: dict[str, str] = {}
+    for line in text[4:end].splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        data[key.strip()] = value.strip().strip("'\"")
+    return data
+
+
+def validate_artifact_frontmatter(text: str, path: Path, state: ValidationState) -> None:
+    data = frontmatter(text)
+    if data.get("artifact_schema_version") != str(ARTIFACT_SCHEMA_VERSION):
+        state.warning(
+            f"missing_or_invalid_artifact_schema_version={state.rel(path)}::{data.get('artifact_schema_version') or 'missing'}"
+        )
+    if data.get("handoff_contract_version") != str(HANDOFF_CONTRACT_VERSION):
+        state.warning(
+            f"missing_or_invalid_handoff_contract_version={state.rel(path)}::{data.get('handoff_contract_version') or 'missing'}"
+        )
+    if data.get("generated_by") != "antigravityqb":
+        state.warning(f"missing_or_invalid_generated_by={state.rel(path)}::{data.get('generated_by') or 'missing'}")
+    if data.get("plugin_version") != PLUGIN_VERSION:
+        state.warning(
+            f"missing_or_invalid_plugin_version={state.rel(path)}::{data.get('plugin_version') or 'missing'}"
+        )
+
+
 def resolve_within_root(root: Path, rel_path: str) -> Path | None:
     target_text = markdown_link_target(rel_path)
     target = Path(target_text)
@@ -541,6 +703,66 @@ def extract_main_phase_numbers(text: str) -> list[int]:
         return sorted({int(match.group(1)) for match in MAIN_PHASE_RE.finditer(roadmap)})
 
     return []
+
+
+def parse_inline_int_list(value: str) -> list[int]:
+    if not value:
+        return []
+    return [int(item) for item in re.findall(r"\d+", value)]
+
+
+def parse_scope_manifest(text: str, path: Path, state: ValidationState) -> dict[str, object]:
+    section = markdown_section(text, "## 3. Planning Scope Manifest")
+    manifest: dict[str, object] = {
+        "planning_mode": "",
+        "active_phases": [],
+        "deferred_phases": [],
+        "max_detailed_subplans": None,
+        "max_output_words": None,
+        "task_token_risk": "",
+        "review_checkpoint": "",
+        "full_mode_authorization": "",
+        "refreshed_phases": [],
+        "repair_targets": "",
+    }
+    if not section:
+        state.warning(f"missing_planning_scope_manifest={state.rel(path)}")
+        return manifest
+
+    for line in section.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("```") or ":" not in stripped:
+            continue
+        key, value = stripped.split(":", 1)
+        key = key.strip().lower()
+        value = value.strip().strip("'\"")
+        if key not in manifest:
+            continue
+        if key in {"active_phases", "deferred_phases", "refreshed_phases"}:
+            manifest[key] = parse_inline_int_list(value)
+        elif key in {"max_detailed_subplans", "max_output_words"}:
+            numbers = parse_inline_int_list(value)
+            manifest[key] = numbers[0] if numbers else None
+        else:
+            manifest[key] = value
+
+    mode = str(manifest["planning_mode"])
+    if mode not in ALLOWED_PLANNING_MODES:
+        state.warning(f"invalid_planning_mode={state.rel(path)}::{mode or 'missing'}")
+    if not manifest["active_phases"] and mode in {"wave", "refresh", "repair"}:
+        state.warning(f"planning_scope_missing_active_phases={state.rel(path)}")
+    if mode == "full" and manifest.get("full_mode_authorization") != "user_explicit":
+        state.warning(f"full_mode_missing_user_explicit_authorization={state.rel(path)}")
+    if mode == "refresh" and not manifest.get("refreshed_phases"):
+        state.warning(f"refresh_mode_missing_refreshed_phases={state.rel(path)}")
+    if mode == "repair" and not cell_has_evidence(str(manifest.get("repair_targets", ""))):
+        state.warning(f"repair_mode_missing_repair_targets={state.rel(path)}")
+    if manifest.get("task_token_risk") and str(manifest.get("task_token_risk")) not in ALLOWED_TASK_TOKEN_RISKS:
+        state.warning(f"invalid_task_token_risk={state.rel(path)}::{manifest.get('task_token_risk')}")
+    for key in ("max_detailed_subplans", "max_output_words", "task_token_risk", "review_checkpoint"):
+        if not manifest[key]:
+            state.warning(f"planning_scope_missing_{key}={state.rel(path)}")
+    return manifest
 
 
 def collect_phase_folders(state: ValidationState) -> dict[int, Path]:
@@ -883,14 +1105,200 @@ def validate_optional_continuity_docs(state: ValidationState) -> None:
     validate_optional_comprehension_doc(state)
 
 
-def validate_index(state: ValidationState) -> set[str]:
+def phase_number_from_value(value: str) -> int | None:
+    match = re.search(r"\d+", value)
+    return int(match.group(0)) if match else None
+
+
+def validate_deferred_cards(state: ValidationState, index_text: str, deferred_phases: set[int]) -> None:
+    section = markdown_section(index_text, "## 9. Out-of-Scope or Deferred Topics")
+    card_phases: set[int] = set()
+    found_table = False
+    for headers, rows in markdown_tables(section):
+        if not headers_match(headers, DEFERRED_CARD_HEADERS):
+            continue
+        found_table = True
+        for row in rows:
+            phase = phase_number_from_value(row_value(row, "Phase"))
+            if phase is None:
+                state.warning("deferred_card_missing_phase=Planner-docs/Sub-Planing-Index.md")
+                continue
+            card_phases.add(phase)
+            status = normalized_cell(row_value(row, "Status"))
+            if status != "deferred":
+                state.warning(f"deferred_card_invalid_status=Faz-{phase}::{status or 'missing'}")
+            for column in ("Deferral Reason", "Activation Trigger", "Earliest Wave"):
+                if not cell_has_evidence(row_value(row, column)):
+                    state.warning(f"deferred_card_missing_{canonical_header(column)}=Faz-{phase}")
+    if deferred_phases and not found_table:
+        state.warning("deferred_cards_table_missing=Planner-docs/Sub-Planing-Index.md")
+    for phase in sorted(deferred_phases - card_phases):
+        state.warning(f"missing_deferred_card=Faz-{phase}")
+    for phase in sorted(card_phases - deferred_phases):
+        state.warning(f"deferred_card_phase_not_in_manifest=Faz-{phase}")
+
+
+def validate_execution_waves(state: ValidationState, index_text: str, active_refs: set[str]) -> None:
+    section = markdown_section(index_text, "## 5. Execution Waves")
+    refs: list[str] = []
+    for match in INDEX_REF_RE.finditer(section):
+        ref = match.group(0)
+        if ref.startswith("./"):
+            ref = ref[2:]
+        if not ref.startswith("Planner-docs/"):
+            ref = f"Planner-docs/{ref}"
+        refs.append(ref)
+    ref_set = set(refs)
+    if active_refs and not refs:
+        state.warning("execution_waves_missing_active_subplans=Planner-docs/Sub-Planing-Index.md")
+        return
+    for ref in sorted(active_refs - ref_set):
+        state.warning(f"execution_waves_missing_subplan={ref}")
+    for ref in sorted(ref_set - active_refs):
+        state.warning(f"execution_waves_non_active_subplan={ref}")
+
+
+def validate_implementation_contract(state: ValidationState, path: Path, text: str) -> None:
+    contract, error = extract_fenced_json_after_heading(text, "### Implementation Contract")
+    if error:
+        state.warning(f"subplan_missing_implementation_contract={state.rel(path)}::{error}")
+        state.warning(f"subplan_missing_implementation_path={state.rel(path)}")
+        state.warning(f"subplan_missing_exact_validation_command={state.rel(path)}")
+        return
+    if not isinstance(contract, dict):
+        state.warning(f"subplan_invalid_implementation_contract={state.rel(path)}::not_object")
+        return
+
+    if contract.get("contract_version") != 1:
+        state.warning(f"subplan_invalid_contract_version={state.rel(path)}::{contract.get('contract_version') or 'missing'}")
+
+    implementation_paths = contract.get("implementation_paths")
+    if not isinstance(implementation_paths, list) or not implementation_paths:
+        state.warning(f"subplan_missing_implementation_path={state.rel(path)}")
+    else:
+        valid_paths = 0
+        for item in implementation_paths:
+            if not isinstance(item, dict):
+                state.warning(f"subplan_invalid_implementation_path_entry={state.rel(path)}::not_object")
+                continue
+            impl_path = safe_repo_path(str(item.get("path", "")))
+            state_value = str(item.get("state", "")).strip()
+            if impl_path is None:
+                state.warning(f"subplan_invalid_implementation_path={state.rel(path)}::{item.get('path') or 'missing'}")
+            else:
+                valid_paths += 1
+            if state_value not in ALLOWED_IMPLEMENTATION_PATH_STATES:
+                state.warning(f"subplan_invalid_implementation_path_state={state.rel(path)}::{state_value or 'missing'}")
+        if valid_paths == 0:
+            state.warning(f"subplan_missing_implementation_path={state.rel(path)}")
+
+    validation_commands = contract.get("validation_commands")
+    if not isinstance(validation_commands, list) or not validation_commands:
+        state.warning(f"subplan_missing_exact_validation_command={state.rel(path)}")
+    else:
+        exact_commands = 0
+        for item in validation_commands:
+            if not isinstance(item, dict):
+                state.warning(f"subplan_invalid_validation_command_entry={state.rel(path)}::not_object")
+                continue
+            command_id = str(item.get("id", ""))
+            if not re.fullmatch(r"VAL-\d{2}", command_id):
+                state.warning(f"subplan_invalid_validation_command_id={state.rel(path)}::{command_id or 'missing'}")
+            if safe_validation_command_item(item):
+                exact_commands += 1
+            else:
+                state.warning(f"subplan_missing_exact_validation_command={state.rel(path)}")
+            if "argv" not in item:
+                state.warning(f"subplan_validation_command_requires_structured_argv={state.rel(path)}::{command_id or 'unknown'}")
+            if "argv" in item:
+                cwd = str(item.get("cwd", ""))
+                timeout = item.get("timeout_seconds")
+                network = item.get("network")
+                probe_tier = item.get("probe_tier")
+                expected_exit = item.get("expected_exit_code")
+                if not safe_repo_cwd(cwd):
+                    state.warning(f"subplan_validation_command_invalid_cwd={state.rel(path)}::{command_id or 'unknown'}")
+                if not isinstance(expected_exit, int):
+                    state.warning(f"subplan_validation_command_invalid_expected_exit_code={state.rel(path)}::{command_id or 'unknown'}")
+                if not isinstance(timeout, int) or timeout < 1 or timeout > 3600:
+                    state.warning(f"subplan_validation_command_invalid_timeout={state.rel(path)}::{command_id or 'unknown'}")
+                if network not in ALLOWED_VALIDATION_NETWORK:
+                    state.warning(f"subplan_validation_command_invalid_network={state.rel(path)}::{command_id or 'unknown'}")
+                if not isinstance(probe_tier, int) or probe_tier < 1 or probe_tier > 3:
+                    state.warning(f"subplan_validation_command_invalid_probe_tier={state.rel(path)}::{command_id or 'unknown'}")
+                if network in {"live", "allow"} and probe_tier != 3:
+                    state.warning(f"subplan_validation_command_network_requires_live_probe={state.rel(path)}::{command_id or 'unknown'}")
+        if exact_commands == 0:
+            state.warning(f"subplan_missing_exact_validation_command={state.rel(path)}")
+
+    parent_signals = contract.get("parent_signals")
+    if not isinstance(parent_signals, list) or not parent_signals:
+        state.warning(f"subplan_missing_parent_acceptance_signal={state.rel(path)}")
+    else:
+        for signal in parent_signals:
+            if not PARENT_SIGNAL_RE.fullmatch(str(signal)):
+                state.warning(f"subplan_invalid_parent_acceptance_signal={state.rel(path)}::{signal}")
+
+    dependencies = contract.get("dependencies")
+    if not isinstance(dependencies, dict):
+        state.warning(f"subplan_missing_dependency_object={state.rel(path)}")
+    else:
+        for label in DEPENDENCY_LABELS:
+            value = dependencies.get(label)
+            if not isinstance(value, list):
+                state.warning(f"subplan_missing_dependency_label={state.rel(path)}::{label}")
+                continue
+            if label == "activation_conditions" and not any(cell_has_evidence(str(item)) for item in value):
+                state.warning(f"subplan_missing_dependency_label={state.rel(path)}::{label}")
+
+    outputs = contract.get("outputs")
+    if not isinstance(outputs, list) or not outputs:
+        state.warning(f"subplan_missing_concrete_output_artifact={state.rel(path)}")
+    else:
+        valid_outputs = 0
+        for item in outputs:
+            output_path = safe_repo_path(str(item))
+            if output_path is None:
+                state.warning(f"subplan_invalid_output_artifact={state.rel(path)}::{item}")
+            else:
+                valid_outputs += 1
+        if valid_outputs == 0:
+            state.warning(f"subplan_missing_concrete_output_artifact={state.rel(path)}")
+
+    security_review_required = contract.get("security_review_required")
+    if not isinstance(security_review_required, bool):
+        state.warning(f"subplan_invalid_security_review_flag={state.rel(path)}")
+
+    risk_class = normalized_cell(str(contract.get("risk_class", "")))
+    if risk_class not in ALLOWED_RISK_CLASSES:
+        state.warning(f"subplan_invalid_risk_class={state.rel(path)}::{risk_class or 'missing'}")
+
+    raw_domains = contract.get("risk_domains")
+    risk_domains: set[str] = set()
+    if not isinstance(raw_domains, list) or not raw_domains:
+        state.warning(f"subplan_invalid_risk_domains={state.rel(path)}::missing")
+    else:
+        for raw_domain in raw_domains:
+            domain = normalized_cell(str(raw_domain))
+            if domain not in ALLOWED_RISK_DOMAINS:
+                state.warning(f"subplan_invalid_risk_domain={state.rel(path)}::{domain or 'missing'}")
+            else:
+                risk_domains.add(domain)
+
+    if (risk_class in {"high", "critical"} or bool(risk_domains & SECURITY_REVIEW_DOMAINS)) and security_review_required is not True:
+        state.warning(f"subplan_security_review_required_for_risk={state.rel(path)}")
+
+
+def validate_index(state: ValidationState) -> tuple[set[str], dict[str, object], str]:
     index_path = state.planner_docs / "Sub-Planing-Index.md"
     text = read_text(index_path, state)
     if text is None:
         state.metrics["index_reference_count"] = 0
-        return set()
+        return set(), {}, ""
 
+    validate_artifact_frontmatter(text, index_path, state)
     validate_heading_order(text, INDEX_HEADINGS, index_path, state)
+    manifest = parse_scope_manifest(text, index_path, state)
     refs = set()
     for match in INDEX_REF_RE.finditer(text):
         ref = match.group(0)
@@ -900,7 +1308,7 @@ def validate_index(state: ValidationState) -> set[str]:
             ref = f"Planner-docs/{ref}"
         refs.add(ref)
     state.metrics["index_reference_count"] = len(refs)
-    return refs
+    return refs, manifest, text
 
 
 def validate_subplan_structure(
@@ -910,10 +1318,14 @@ def validate_subplan_structure(
     path: Path,
     repeated_bodies: dict[str, list[str]],
     repeated_sentences: dict[str, list[str]],
+    active: bool,
 ) -> None:
     text = read_text(path, state)
     if text is None:
         return
+
+    if active:
+        validate_artifact_frontmatter(text, path, state)
 
     h1_match = H1_SUBPLAN_RE.search(text)
     if not h1_match:
@@ -953,31 +1365,81 @@ def validate_subplan_structure(
     ):
         add_repeated_sentence_candidates(state, path, section_body(text, heading), repeated_sentences)
 
+    if active:
+        validate_implementation_contract(state, path, text)
+
 
 def validate_step2(state: ValidationState) -> None:
     main_phases = validate_step1(state)
+    main_phase_set = set(main_phases)
     validate_autopsy_optional(state)
     validate_optional_continuity_docs(state)
-    index_refs = validate_index(state)
+    index_refs, manifest, index_text = validate_index(state)
     folders = collect_phase_folders(state)
     subplans = collect_subplans(state)
 
     state.metrics["phase_folder_count"] = len(folders)
     state.metrics["subplan_count"] = len([item for item in subplans if item[1] is not None])
+    mode = str(manifest.get("planning_mode", "")) if manifest else ""
+    active_phases = set(manifest.get("active_phases", []) or []) if manifest else set()
+    deferred_phases = set(manifest.get("deferred_phases", []) or []) if manifest else set()
+    if not active_phases:
+        active_phases = set(main_phases)
+    if mode == "full":
+        active_phases = set(main_phases)
+        if deferred_phases:
+            state.warning("full_mode_has_deferred_phases=Planner-docs/Sub-Planing-Index.md")
+    state.metrics["planning_mode"] = mode or "legacy"
+    state.metrics["active_phase_count"] = len(active_phases)
+    state.metrics["deferred_phase_count"] = len(deferred_phases)
+
+    manifest_phase_set = active_phases | deferred_phases
+    if mode and main_phase_set:
+        for phase in sorted(main_phase_set - manifest_phase_set):
+            state.warning(f"planning_scope_missing_main_phase=Faz-{phase}")
+    for phase in sorted(manifest_phase_set - main_phase_set):
+        state.warning(f"planning_scope_phase_not_in_main_plan=Faz-{phase}")
+    if active_phases & deferred_phases:
+        overlap = ",".join(str(item) for item in sorted(active_phases & deferred_phases))
+        state.warning(f"planning_scope_active_deferred_overlap={overlap}")
 
     if main_phases:
-        for phase in main_phases:
+        for phase in sorted(active_phases):
             if phase not in folders:
                 state.error(f"missing_phase_folder=Planner-docs/Faz-{phase}-Plans")
         for phase in sorted(folders):
             if phase not in main_phases:
                 state.warning(f"extra_phase_folder_without_main_phase=Planner-docs/Faz-{phase}-Plans")
+            if phase in deferred_phases:
+                state.warning(f"deferred_phase_has_detailed_folder=Planner-docs/Faz-{phase}-Plans")
 
     actual_refs = {state.rel(path) for _, subphase, path in subplans if subphase is not None}
+    active_actual_refs = {
+        state.rel(path)
+        for phase, subphase, path in subplans
+        if subphase is not None and phase in active_phases
+    }
     for ref in sorted(actual_refs - index_refs):
         state.error(f"unindexed_subplan={ref}")
     for ref in sorted(index_refs - actual_refs):
         state.error(f"missing_index_target={ref}")
+
+    max_detailed = manifest.get("max_detailed_subplans") if manifest else None
+    if isinstance(max_detailed, int) and len(active_actual_refs) > max_detailed:
+        state.warning(f"planning_scope_exceeds_max_detailed_subplans={len(active_actual_refs)}>{max_detailed}")
+
+    active_word_count = 0
+    max_words = manifest.get("max_output_words") if manifest else None
+    for phase, subphase, path in subplans:
+        if subphase is None or phase not in active_phases:
+            continue
+        text = read_text(path, state) or ""
+        active_word_count += len(re.findall(r"\S+", text))
+    if isinstance(max_words, int) and active_word_count > max_words:
+        state.warning(f"planning_scope_exceeds_max_output_words={active_word_count}>{max_words}")
+
+    validate_deferred_cards(state, index_text, deferred_phases)
+    validate_execution_waves(state, index_text, active_actual_refs)
 
     seen: set[tuple[int, int]] = set()
     per_phase: dict[int, list[int]] = defaultdict(list)
@@ -992,7 +1454,15 @@ def validate_step2(state: ValidationState) -> None:
             state.error(f"duplicate_subplan_number=Faz{phase}.{subphase}")
         seen.add(key)
         per_phase[phase].append(subphase)
-        validate_subplan_structure(state, phase, subphase, path, repeated_bodies, repeated_sentences)
+        validate_subplan_structure(
+            state,
+            phase,
+            subphase,
+            path,
+            repeated_bodies,
+            repeated_sentences,
+            active=phase in active_phases,
+        )
 
     for phase, folder in sorted(folders.items()):
         numbers = sorted(per_phase.get(phase, []))

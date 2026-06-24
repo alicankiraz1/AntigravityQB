@@ -9,6 +9,8 @@ description: Vibecoding-first Antigravity planning with evidence-backed comprehe
 
 Run the bundled planning workflow for a project repository. Keep Step 1 conversational and repo-aware, run Step 1.5 Autopsy for existing projects, and hand off Step 2 and Step 3 as text-only Antigravity task prompts unless the user explicitly asks for a different flow. After Step 3, provide a gated Step 4 implementation handoff prompt only when the audit says implementation can begin.
 
+Current generated Step 2 artifacts use `artifact_schema_version: 3` and `handoff_contract_version: 2`. Older schema v2 planning packages remain readable, but strict validation reports migration warnings until the Step 2 index and active sub-plans are regenerated with schema v3 frontmatter and a Planning Scope Manifest.
+
 The bundled prompts are:
 
 - `references/First-Planner.md` for Step 1 main planning.
@@ -32,6 +34,8 @@ Planning behavior references:
 Bundled support files:
 
 - `scripts/validate_planner_docs.py` for read-only structural validation of `Planner-docs/`.
+- `scripts/task_run.py` for dependency-free Antigravity task preview artifacts that snapshot sources, write policy metadata, and produce BLOCKED/READY handoff files without executing implementation.
+- `scripts/task_apply.py` for dependency-free local run state artifacts: prepare, validate, finalize, and expired writer-lock recovery around a task preview run.
 - `references/repo-aware-intake.md` for evidence-backed Step 1 intake questions.
 - `references/workflow-quality.md` for Antigravity task reliability, validation, token discipline, and handoff practices.
 
@@ -106,12 +110,13 @@ When executing Step 2 directly:
 1. Read `references/Second-Planner.md`.
 2. Read `references/workflow-quality.md`.
 3. Read `Planner-docs/Autopsy.md`, `Planner-docs/Project-Ontology.md`, `Planner-docs/Project-Comprehension.md`, and `Planner-docs/Planing-Ledger.md` when they exist; do not block Step 2 when they are absent.
-4. Follow repository inspection, file-boundary, naming, all-file validation, and stopping rules exactly.
-5. Run the bundled validator after generation when available. When manually validating from an AntigravityQB repository checkout, use:
+4. Use default `wave` planning unless the user explicitly asks for `full` planning. In `wave` mode, generate detailed sub-plans only for the active planning horizon and represent later phases as deferred roadmap cards in `Planner-docs/Sub-Planing-Index.md`.
+5. Follow repository inspection, file-boundary, naming, all-file validation, and stopping rules exactly.
+6. Run the bundled validator after generation when available. When manually validating from an AntigravityQB repository checkout, use:
    `python3 skills/antigravityqb/scripts/validate_planner_docs.py --root . --mode step2 --strict`
    If no script path is accessible, perform equivalent all-file validation and report that fallback clearly.
-6. Do not modify files outside `Planner-docs/`.
-7. After the Step 2 summary, print the Step 3 Antigravity task handoff block from this skill.
+7. Do not modify files outside `Planner-docs/`.
+8. After the Step 2 summary, print the Step 3 Antigravity task handoff block from this skill.
 
 ## Step 3 Handoff
 

@@ -1,7 +1,7 @@
 # Maintaining AntigravityQB
 
-artifact_schema_version: 2
-handoff_contract_version: 1
+artifact_schema_version: 3
+handoff_contract_version: 2
 
 This document covers validation and release maintenance for AntigravityQB.
 
@@ -35,6 +35,12 @@ python3 skills/antigravityqb/scripts/validate_planner_docs.py --root /path/to/pr
 When changing the validator, test at least:
 
 - a valid Step 2 fixture;
+- schema v3 frontmatter and Planning Scope Manifest validation for Step 2 artifacts;
+- wave-mode deferred roadmap cards without detailed folders for deferred phases;
+- active sub-plan Implementation Contracts rejecting unsafe paths and mutating validation commands in strict mode;
+- `task_run.py` preview artifacts for READY and BLOCKED stage prerequisites without executing product work;
+- `task_apply.py` prepare, validate, finalize, append-only event log, and expired writer-lock recovery behavior;
+- legacy schema v2 Step 2 artifacts reporting migration warnings in strict mode;
 - a missing-section fixture;
 - a normal filename containing `sk-` such as `task-spec.yaml`;
 - a fake long secret token that should be detected;
@@ -51,6 +57,10 @@ Run:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+For task preview helper changes, also verify that generated `Task-Run.json`, `Task-Prompt.md`, and `Task-Result.json` stay inside `Planner-docs/Task-Runs/`, include source snapshot and policy digests, and report BLOCKED when stage prerequisites are missing.
+
+For run-state helper changes, verify that `Progress.json`, `Events.jsonl`, `Writer-Lock.json`, and `Result.json` stay inside the same task-run directory, validation rejects missing or malformed state files, and `recover-lock` only succeeds for available or expired locks.
 
 ## Release Flow
 
