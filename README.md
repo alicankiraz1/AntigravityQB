@@ -25,6 +25,18 @@ This release brings AntigravityQB to the current QB-family planning contract:
 - semantic Step 4 readiness parsing, `NO_ACTION_REQUIRED`, finding status checks, and unsafe path rejection;
 - deterministic fixture corpus checks under `evals/`.
 
+## Development Plan
+
+The next Antigravity-native adaptation plan is tracked in [antigravity-gelistirme2506.md](antigravity-gelistirme2506.md). The stable public release remains `0.2.1`; the plan separates future 0.3.x work from the install and validation instructions below.
+
+Planned 0.3.x work should stay Antigravity-native while adding:
+
+- schema v3 and handoff v2 planning metadata;
+- adaptive `wave` and `full` Step 2 planning;
+- structured implementation contracts with safe `argv` validation commands;
+- policy-digest style run safety checks;
+- local run artifacts that avoid vendor-specific paths, commands, and agent APIs.
+
 ## What It Does
 
 AntigravityQB creates a planning workflow around the repository you already have open:
