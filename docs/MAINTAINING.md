@@ -13,7 +13,7 @@ Run the default repository validation before every release:
 make check
 ```
 
-This checks required package files, Antigravity skill frontmatter, stale platform invocation names, vibecoding/ontology/ledger/task-delegation wiring, release secret hygiene in Git checkouts, package secret hygiene in Gitless exports, archive hygiene in Git checkouts, package hygiene in Gitless exports, installer dry-runs, and the Python unit test suite. It intentionally uses only shell and Python standard-library commands.
+This checks required package files, Antigravity skill frontmatter, stale platform invocation names, README/docs/skill/package version alignment, vibecoding/ontology/ledger/task-delegation wiring, release secret hygiene in Git checkouts, package secret hygiene in Gitless exports, public privacy hygiene, archive hygiene in Git checkouts, package hygiene in Gitless exports, installer dry-runs, and the Python unit test suite. It intentionally uses only shell and Python standard-library commands.
 
 On a normal local development machine, `make check` is expected to complete well under 30 seconds. Validator CLI smoke tests have a 30-second timeout, and any timeout or hang is a release blocker. CI pins Python 3.12 with `actions/setup-python`.
 
@@ -71,11 +71,14 @@ For run-state helper changes, verify that `Progress.json`, `Events.jsonl`, `Writ
 5. Update `skills/antigravityqb/references/handoffs/` when Antigravity task handoff contracts change.
 6. Update `skills/antigravityqb/references/vibecoding-principles.md`, `task-delegation-playbook.md`, `planning-ledger.md`, `project-ontology.md`, `project-comprehension-methods.md`, `probe-policy.md`, `assessment-and-budget.md`, or `engineering-principles.md` when planning behavior changes.
 7. Update `skills/antigravityqb/scripts/validate_planner_docs.py` if planner structure, continuity docs, or readiness gates change.
-8. Run `make check`.
-9. Install into a disposable project with `scripts/install.sh --scope ide-project --target "$(mktemp -d)" --dry-run`.
-10. Preview the Antigravity app cache install with `scripts/install.sh --scope app-global --dry-run`.
-11. Manually install to the desired Antigravity scope when ready.
-12. Start a new Antigravity conversation or task before testing.
+8. Update `scripts/export_sanitized.py` and `scripts/check_public_privacy.py` when release package or privacy rules change.
+9. Run `make check`.
+10. Run `make export-sanitized` from a clean Git checkout.
+11. Extract `AntigravityQB-sanitized.zip` to a temporary directory and run the package smoke with unit tests skipped.
+12. Install into a disposable project with `scripts/install.sh --scope ide-project --target "$(mktemp -d)" --dry-run`.
+13. Preview the Antigravity app cache install with `scripts/install.sh --scope app-global --dry-run`.
+14. Manually install to the desired Antigravity scopes when ready.
+15. Start a new Antigravity conversation or task before testing.
 
 ## Task Handoff and Replanning Memory Checks
 
@@ -95,13 +98,13 @@ When changing Step 4 behavior, verify that the prompt:
 
 Do not create release zips with Finder or generic directory compression, because ignored files such as `.git/`, `__pycache__/`, `.env`, `artifacts/`, `logs/`, or `tmp/` can be included.
 
-Use the tracked-file export target when this folder is inside a Git checkout:
+Use the tracked-file export target when this folder is inside a clean Git checkout:
 
 ```bash
 make export-sanitized
 ```
 
-This writes `AntigravityQB-sanitized.zip` with `git archive`, requires a clean index/worktree, and prefixes archive contents with `AntigravityQB/`. The default `make check` gate validates archive contents when Git metadata is available. In an extracted or copied package without `.git`, `make check` falls back to filesystem package hygiene and package secret hygiene; that fallback does not claim tracked-file or archive guarantees.
+This writes `AntigravityQB-sanitized.zip` with `scripts/export_sanitized.py`. The exporter requires a clean Git checkout, includes only tracked files, rejects symlinks and forbidden release paths, runs secret and public privacy scans, prefixes archive contents with `AntigravityQB/`, and writes `AntigravityQB/PACKAGE-MANIFEST.json` with package version, commit, tree, branch, tracked file count, SHA-256 metadata, and scan status. The default `make check` gate validates archive contents when Git metadata is available. In an extracted or copied package without `.git`, `make check` falls back to filesystem package hygiene and package secret hygiene; that fallback does not claim tracked-file or archive guarantees.
 
 Before claiming release readiness, extract the archive to a temporary directory and run:
 
@@ -112,8 +115,20 @@ ANTIGRAVITYQB_VALIDATE_SKIP_UNITTESTS=1 bash scripts/validate.sh
 Local install parity should exclude generated Python caches:
 
 ```bash
+scripts/install.sh --scope app-global --force
+scripts/install.sh --scope ide-global --force
+scripts/install.sh --scope cli-global --force
 rsync -a --delete --exclude '__pycache__/' --exclude '*.pyc' skills/antigravityqb/ ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb/
-diff -ru -x __pycache__ skills/antigravityqb ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.agents/skills/antigravityqb
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.gemini/antigravity-cli/skills/antigravityqb
+```
+
+For app-global installs, verify both metadata files:
+
+```bash
+grep '"version": "0.3.0"' ~/.gemini/config/plugins/antigravityqb/plugin.json
+grep '"version": "0.3.0"' ~/.gemini/config/plugins/antigravityqb/installed_version.json
 ```
 
 ## Contribution Guidelines

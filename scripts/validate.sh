@@ -35,6 +35,8 @@ required_files=(
   "docs/USAGE.md"
   "docs/MAINTAINING.md"
   ".github/workflows/validate.yml"
+  "scripts/check_public_privacy.py"
+  "scripts/export_sanitized.py"
   "scripts/install.sh"
   "tests/test_skill_content.py"
   "tests/test_validate_planner_docs.py"
@@ -67,6 +69,46 @@ required = {
 missing = sorted(item for item in required if item not in frontmatter)
 if missing:
     print("skill_frontmatter_missing_keys=" + ",".join(missing))
+    sys.exit(1)
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+root = Path(".")
+validator = (root / "skills/antigravityqb/scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+match = re.search(r'^PLUGIN_VERSION = "([^"]+)"$', validator, flags=re.MULTILINE)
+if not match:
+    print("version_alignment_failed=missing_validator_plugin_version")
+    sys.exit(1)
+version = match.group(1)
+
+checks = {
+    "skills/antigravityqb/scripts/task_run.py": f'PLUGIN_VERSION = "{version}"',
+    "scripts/export_sanitized.py": f'PACKAGE_VERSION = "{version}"',
+    "README.md": f"Current package version in this branch: `{version}`",
+    "CHANGELOG.md": f"## {version}",
+    "docs/INSTALLATION.md": f"AntigravityQB {version}",
+    "skills/antigravityqb/references/Second-Planner.md": f"plugin_version: {version}",
+    "scripts/install.sh": f'"version": "{version}"',
+}
+
+findings = []
+for path, needle in checks.items():
+    text = (root / path).read_text(encoding="utf-8")
+    if needle not in text:
+        findings.append(f"{path}: missing {needle}")
+
+install_text = (root / "scripts/install.sh").read_text(encoding="utf-8")
+if f'{{"version": "{version}"}}' not in install_text:
+    findings.append("scripts/install.sh: missing installed_version.json version")
+
+if findings:
+    print("version_alignment_failed")
+    for finding in findings:
+        print(finding)
     sys.exit(1)
 PY
 
@@ -232,78 +274,7 @@ if findings:
     sys.exit(1)
 PY
 
-python3 - <<'PY'
-from pathlib import Path
-import re
-import sys
-
-pii_patterns = [
-    ("email_address", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)),
-    ("us_ssn", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
-    ("turkish_tckn", re.compile(r"\b[1-9]\d{10}\b")),
-    ("passport_like_id", re.compile(r"\b[A-Z][0-9]{8}\b")),
-    ("phone_number", re.compile(r"\b(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?){2}\d{4}\b")),
-]
-scan_roots = [
-    Path("README.md"),
-    Path("Makefile"),
-    Path(".github"),
-    Path("docs"),
-    Path("skills"),
-    Path("scripts"),
-    Path("tests"),
-]
-ignored_parts = {
-    ".git",
-    "__MACOSX",
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    "artifacts",
-    "build",
-    "dist",
-    "logs",
-    "tmp",
-}
-blocked_suffixes = {".key", ".pem", ".pyc", ".zip"}
-allowed_fragments = {
-    "noreply.github.com",
-    "users.noreply.github.com",
-    "example.com",
-    "example-root",
-}
-
-paths: list[Path] = []
-for root in scan_roots:
-    if root.is_file():
-        paths.append(root)
-    elif root.is_dir():
-        paths.extend(path for path in root.rglob("*") if path.is_file())
-
-findings: list[str] = []
-for path in sorted(paths):
-    if ignored_parts.intersection(path.parts):
-        continue
-    if path.suffix in blocked_suffixes:
-        continue
-    try:
-        text = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        continue
-
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        if any(fragment in line for fragment in allowed_fragments):
-            continue
-        for name, pattern in pii_patterns:
-            if pattern.search(line):
-                findings.append(f"{path}:{line_number}: {name}")
-
-if findings:
-    print("release_pii_hygiene_failed")
-    for finding in findings:
-        print(finding)
-    sys.exit(1)
-PY
+python3 scripts/check_public_privacy.py --root "$ROOT"
 
 python3 - <<'PY'
 import io

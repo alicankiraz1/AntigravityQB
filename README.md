@@ -302,6 +302,14 @@ Maintainers should run the full package check before release:
 make check
 ```
 
+Create a sanitized archive only from a clean Git checkout:
+
+```bash
+make export-sanitized
+```
+
+The archive is tracked-file-only, rejects symlinks and forbidden release paths, scans secrets and public privacy leaks, and includes `AntigravityQB/PACKAGE-MANIFEST.json` with commit, tree, branch, version, and SHA-256 metadata.
+
 The repository also includes a deterministic fixture corpus under `evals/` so future live skill evaluations have stable inputs.
 
 For local task preview artifacts, run:
@@ -327,7 +335,9 @@ python3 skills/antigravityqb/scripts/task_apply.py finalize --run-dir /path/to/p
 - required repository files;
 - Antigravity skill frontmatter;
 - stale platform invocation names;
+- README/docs/skill/package version alignment;
 - release secret hygiene in Git checkouts or package secret hygiene in Gitless exports;
+- public privacy hygiene for local paths, attachment IDs, thread/session IDs, runtime log references, and direct personal identifiers;
 - archive hygiene in Git checkouts or package hygiene in Gitless exports;
 - installer dry-runs;
 - Python unit tests;

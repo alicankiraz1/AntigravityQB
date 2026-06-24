@@ -95,12 +95,18 @@ AntigravityQB 0.3.0 keeps 0.2.x planner artifacts readable outside strict execut
 
 ## Verify Local Parity
 
-After updating the repository copy, reinstall and compare the app-visible skill:
+After updating the repository copy, reinstall and compare every local global Antigravity skill scope:
 
 ```bash
 scripts/install.sh --scope app-global --force
-diff -ru -x __pycache__ skills/antigravityqb ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb
+scripts/install.sh --scope ide-global --force
+scripts/install.sh --scope cli-global --force
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.gemini/config/plugins/antigravityqb/skills/antigravityqb
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.agents/skills/antigravityqb
+diff -qr -x __pycache__ -x '*.pyc' skills/antigravityqb ~/.gemini/antigravity-cli/skills/antigravityqb
 ```
+
+For app-global installs, also confirm `~/.gemini/config/plugins/antigravityqb/plugin.json` and `~/.gemini/config/plugins/antigravityqb/installed_version.json` report the same package version as this repository.
 
 When syncing manually, exclude generated Python caches:
 

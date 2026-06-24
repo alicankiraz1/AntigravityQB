@@ -191,11 +191,14 @@ class SkillContentTests(unittest.TestCase):
 
     def test_validate_script_covers_archive_and_secret_hygiene(self) -> None:
         validate_script = (REPO_ROOT / "scripts/validate.sh").read_text(encoding="utf-8")
+        privacy_script = (REPO_ROOT / "scripts/check_public_privacy.py").read_text(encoding="utf-8")
         for phrase in [
             "release_secret_hygiene_failed",
             "package_secret_hygiene_failed",
             "package_secret_hygiene_mode=filesystem",
-            "release_pii_hygiene_failed",
+            "scripts/check_public_privacy.py",
+            "scripts/export_sanitized.py",
+            "version_alignment_failed",
             "openrouter_api_key",
             "OPENROUTER_API_KEY",
             "git\", \"archive\"",
@@ -208,6 +211,8 @@ class SkillContentTests(unittest.TestCase):
             ".local",
         ]:
             self.assertIn(phrase, validate_script)
+        self.assertIn("release_pii_hygiene_failed", privacy_script)
+        self.assertIn("absolute_user_path", privacy_script)
 
     def test_validate_script_runs_without_git_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -438,6 +443,7 @@ class SkillContentTests(unittest.TestCase):
     def test_ci_and_export_sanitized_are_hardened(self) -> None:
         workflow = (REPO_ROOT / ".github/workflows/validate.yml").read_text(encoding="utf-8")
         makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+        exporter = (REPO_ROOT / "scripts/export_sanitized.py").read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("push:", workflow)
         self.assertIn("pull_request:", workflow)
@@ -446,9 +452,34 @@ class SkillContentTests(unittest.TestCase):
         self.assertIn("actions/setup-python@v6", workflow)
         self.assertIn('python-version: "3.12"', workflow)
         self.assertIn("make check", workflow)
-        self.assertIn("git diff --quiet", makefile)
-        self.assertIn("git diff --cached --quiet", makefile)
-        self.assertIn("--prefix=AntigravityQB/", makefile)
+        self.assertIn("python3 scripts/export_sanitized.py", makefile)
+        for phrase in [
+            "PACKAGE-MANIFEST.json",
+            "tracked_only",
+            "symlink_not_allowed",
+            "release_secret_hygiene_failed",
+            "release_pii_hygiene_failed",
+            "working_tree_clean",
+        ]:
+            self.assertIn(phrase, exporter)
+
+    def test_package_version_alignment_sources_match(self) -> None:
+        validator = (SKILL_ROOT / "scripts/validate_planner_docs.py").read_text(encoding="utf-8")
+        match = re.search(r'^PLUGIN_VERSION = "([^"]+)"$', validator, flags=re.MULTILINE)
+        self.assertIsNotNone(match)
+        version = match.group(1)
+
+        checks = {
+            "README.md": f"Current package version in this branch: `{version}`",
+            "CHANGELOG.md": f"## {version}",
+            "docs/INSTALLATION.md": f"AntigravityQB {version}",
+            "scripts/install.sh": f'"version": "{version}"',
+            "scripts/export_sanitized.py": f'PACKAGE_VERSION = "{version}"',
+            "skills/antigravityqb/scripts/task_run.py": f'PLUGIN_VERSION = "{version}"',
+            "skills/antigravityqb/references/Second-Planner.md": f"plugin_version: {version}",
+        }
+        for rel, needle in checks.items():
+            self.assertIn(needle, (REPO_ROOT / rel).read_text(encoding="utf-8"), rel)
 
     def test_fixture_corpus_infrastructure_is_present(self) -> None:
         runner = REPO_ROOT / "evals/run_fixture_corpus_checks.py"
@@ -487,7 +518,7 @@ class SkillContentTests(unittest.TestCase):
         for text in [install, maintaining]:
             self.assertIn("--exclude '__pycache__/'", text)
             self.assertIn("--exclude '*.pyc'", text)
-            self.assertIn("diff -ru -x __pycache__", text)
+            self.assertIn("diff -qr -x __pycache__ -x '*.pyc'", text)
 
 
 if __name__ == "__main__":
